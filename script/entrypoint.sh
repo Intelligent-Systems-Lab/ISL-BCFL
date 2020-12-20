@@ -25,9 +25,13 @@ sleep 1
 
 if [ -f "/tendermint/mytestnet" ]
 then
+    echo "Init tendermint node env."
+    sleep 2
     mkdir -p /tendermint/mytestnet
     cd /tendermint/mytestnet
     tendermint testnet
+else 
+    echo "/tendermint/mytestnet exist"
 fi
 
 

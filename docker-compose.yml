@@ -1,0 +1,140 @@
+version: '3'
+
+services:
+  node0:
+    image: tony92151/tendermint-docker
+    container_name: node0
+    ports:
+      - "26656-26657:26656-26657"
+    environment:
+      - MODE=node
+      - ID=0
+    volumes:
+      - ./script:/root
+      - ./build:/tendermint
+    entrypoint: /bin/bash
+    command: /root/entrypoint.sh
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.2
+
+  abci0:
+    container_name: abci0
+    image: tony92151/tendermint-docker
+    environment:
+      - MODE=app
+      - ID=0
+    volumes:
+      - ./script:/root
+      - ./build:/tendermint
+    entrypoint: /bin/bash
+    command: /root/entrypoint.sh
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.6
+
+    # depends_on:
+    #   - node0
+
+  # node1:
+  #   image: tony92151/tendermint-docker
+  #   container_name: node1
+  #   ports:
+  #     - "26659-26660:26656-26657"
+  #   environment:
+  #     - MODE=node
+  #     - ID=1
+  #   volumes:
+  #     - ./script:/root
+  #     - ./build:/tendermint
+  #   networks:
+  #     localnet:
+  #       ipv4_address: 192.168.10.3
+
+  # node2:
+  #   image: tony92151/tendermint-docker
+  #   container_name: node2
+  #   environment:
+  #     - MODE=node
+  #     - ID=1
+  #   ports:
+  #     - "26661-26662:26656-26657"
+  #   volumes:
+  #     - ./script:/root
+  #     - ./build:/tendermint
+  #   networks:
+  #     localnet:
+  #       ipv4_address: 192.168.10.4
+
+  # node3:
+  #   image: tony92151/tendermint-docker
+  #   container_name: node3
+  #   environment:
+  #     - MODE=node
+  #     - ID=1
+  #   ports:
+  #     - "26663-26664:26656-26657"
+  #   volumes:
+  #     - ./script:/root
+  #     - ./build:/tendermint
+  #   networks:
+  #     localnet:
+  #       ipv4_address: 192.168.10.5
+
+  # abci0:
+  #   container_name: abci0
+  #   image: "abci"
+  #   build:
+  #     context: ./abci
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - ./build:/tendermint:Z
+  #   networks:
+  #     localnet:
+  #       ipv4_address: 192.168.10.6
+
+  # abci1:
+  #   container_name: abci1
+  #   image: "abci"
+  #   build:
+  #     context: ./abci
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - ./build:/tendermint:Z
+  #   networks:
+  #     localnet:
+  #       ipv4_address: 192.168.10.7
+
+  # abci2:
+  #   container_name: abci2
+  #   image: "abci"
+  #   build:
+  #     context: ./abci
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - ./build:/tendermint:Z
+  #   networks:
+  #     localnet:
+  #       ipv4_address: 192.168.10.8
+
+  # abci3:
+  #   container_name: abci3
+  #   image: "abci"
+  #   build:
+  #     context: ./abci
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - ./build:/tendermint:Z
+  #   networks:
+  #     localnet:
+  #       ipv4_address: 192.168.10.9
+
+networks:
+  localnet:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      -
+        subnet: 192.168.10.0/16
+        gateway: 192.168.10.1

@@ -49,4 +49,11 @@ else
     echo "Building..."
     go build -o ticket main.go ticketstore.go
     ./ticket
+    # cd $GOPATH/src/github.com
+    # git clone https://github.com/BrianPHChen/tendermint_isl.git
+    # cd tendermint_isl
+    # make tools
+    # make install_abci
+    # make indtall
+    # abci-cli ticketstore
 fi

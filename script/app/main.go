@@ -4,19 +4,20 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
 
 	//"github.com/dgraph-io/badger"
 
 	abciserver "github.com/tendermint/tendermint/abci/server"
 	"github.com/tendermint/tendermint/libs/log"
+	tmos "github.com/tendermint/tendermint/libs/os"
 )
 
-var socketAddr string
+var flagAddress string
+var flagAbci string
 
 func init() {
-	flag.StringVar(&socketAddr, "socket-addr", "tcp://0.0.0.0:26658", "tcp socket address")
+	flag.StringVar(&flagAddress, "address", "tcp://0.0.0.0:26658", "address of application socket")
+	flag.StringVar(&flagAbci, "abci", "socket", "either socket or grpc")
 }
 // func init() {
 // 	fmt.Println("Reading from : " + os.Getenv("NODEPATH")+"/config/config.toml")
@@ -24,33 +25,6 @@ func init() {
 // 	flag.StringVar(&configFile, "config", os.Getenv("NODEPATH")+"/config/config.toml", "Path to config.toml")
 // }
 
-
-func main() {
-	// db, err := badger.Open(badger.DefaultOptions("/tmp/badger"))
-	// if err != nil {
-	// 	fmt.Fprintf(os.Stderr, "failed to open badger db: %v", err)
-	// 	os.Exit(1)
-	// }
-	// defer db.Close()
-	app := NewTicketStoreApplication()
-
-	flag.Parse()
-
-	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
-
-	server := abciserver.NewSocketServer(socketAddr, app)
-	server.SetLogger(logger)
-	if err := server.Start(); err != nil {
-		fmt.Fprintf(os.Stderr, "error starting socket server: %v", err)
-		os.Exit(1)
-	}
-	defer server.Stop()
-
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
-	os.Exit(0)
-}
 
 // func main() {
 // 	// db, err := badger.Open(badger.DefaultOptions("/tmp/badger"))
@@ -63,17 +37,32 @@ func main() {
 
 // 	flag.Parse()
 
-// 	node, err := newTendermint(app, configFile)
-// 	if err != nil {
-// 		fmt.Fprintf(os.Stderr, "%v", err)
-// 		os.Exit(2)
-// 	}
+// 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 
-// 	node.Start()
-// 	defer func() {
-// 		node.Stop()
-// 		node.Wait()
-// 	}()
+// 	//server := abciserver.NewSocketServer(socketAddr,flagAbci , app)
+
+// 	server, err := abciserver.NewServer(flagAddress, flagAbci, app)
+
+// 	server.SetLogger(logger)
+// 	if err := server.Start(); err != nil {
+// 		fmt.Fprintf(os.Stderr, "error starting socket server: %v", err)
+// 		os.Exit(1)
+// 	}
+// 	defer server.Stop()
+
+	
+// 	//srv, err := server.NewServer(flagAddress, flagAbci, app)
+// 	if err != nil {
+// 		fmt.Fprintf(os.Stderr, "error starting  server: %v", err)
+// 		os.Exit(1)
+// 	}
+// 	// srv.SetLogger(logger.With("module", "abci-server"))
+// 	// if err := srv.Start(); err != nil {
+// 	// 	fmt.Fprintf(os.Stderr, "error starting  server: %v", err)
+// 	// 	os.Exit(1)
+// 	// }
+
+// 	// select {}
 
 // 	c := make(chan os.Signal, 1)
 // 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -81,54 +70,30 @@ func main() {
 // 	os.Exit(0)
 // }
 
-// func newTendermint(app abci.Application, configFile string) (*nm.Node, error) {
-// 	// read config
-// 	config := cfg.DefaultConfig()
-// 	config.RootDir = filepath.Dir(filepath.Dir(configFile))
-// 	viper.SetConfigFile(configFile)
-// 	if err := viper.ReadInConfig(); err != nil {
-// 		return nil, fmt.Errorf("viper failed to read config file: %w", err)
-// 	}
-// 	if err := viper.Unmarshal(config); err != nil {
-// 		return nil, fmt.Errorf("viper failed to unmarshal config: %w", err)
-// 	}
-// 	if err := config.ValidateBasic(); err != nil {
-// 		return nil, fmt.Errorf("config is invalid: %w", err)
-// 	}
 
-// 	// create logger
-// 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
-// 	var err error
-// 	logger, err = tmflags.ParseLogLevel(config.LogLevel, logger, cfg.DefaultLogLevel())
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to parse log level: %w", err)
-// 	}
+func main()  {
+	app := NewTicketStoreApplication()
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 
-// 	// read private validator
-// 	pv := privval.LoadFilePV(
-// 		config.PrivValidatorKeyFile(),
-// 		config.PrivValidatorStateFile(),
-// 	)
+	// Start the listener
+	srv, err := abciserver.NewServer(flagAddress, flagAbci, app)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error starting socket server: %v", err)
+		os.Exit(1)
+	}
+	srv.SetLogger(logger.With("module", "abci-server"))
+	if err := srv.Start(); err != nil {
+		fmt.Fprintf(os.Stderr, "error starting socket server: %v", err)
+		os.Exit(1)
+	}
+	// Stop upon receiving SIGTERM or CTRL-C.
+	tmos.TrapSignal(logger, func() {
+		// Cleanup
+		if err := srv.Stop(); err != nil {
+			logger.Error("Error while stopping server", "err", err)
+		}
+	})
 
-// 	// read node key
-// 	nodeKey, err := p2p.LoadNodeKey(config.NodeKeyFile())
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to load node's key: %w", err)
-// 	}
-
-// 	// create node
-// 	node, err := nm.NewNode(
-// 		config,
-// 		pv,
-// 		nodeKey,
-// 		proxy.NewLocalClientCreator(app),
-// 		nm.DefaultGenesisDocProviderFunc(config),
-// 		nm.DefaultDBProvider,
-// 		nm.DefaultMetricsProvider(config.Instrumentation),
-// 		logger)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to create new Tendermint node: %w", err)
-// 	}
-
-// 	return node, nil
-// }
+	// Run forever.
+	select {}
+}

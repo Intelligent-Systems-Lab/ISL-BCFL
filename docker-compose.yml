@@ -16,7 +16,7 @@ services:
     command: /root/entrypoint.sh
     networks:
       localnet:
-        ipv4_address: 192.168.10.2
+        ipv4_address: 172.168.10.2
 
   abci0:
     container_name: abci0
@@ -31,7 +31,7 @@ services:
     command: /root/entrypoint.sh
     networks:
       localnet:
-        ipv4_address: 192.168.10.6
+        ipv4_address: 172.168.10.6
 
     # depends_on:
     #   - node0
@@ -136,5 +136,5 @@ networks:
       driver: default
       config:
       -
-        subnet: 192.168.10.0/16
-        gateway: 192.168.10.1
+        subnet: 172.168.10.0/16
+        gateway: 172.168.10.1

@@ -15,6 +15,9 @@ import (
 
 var socketAddr string
 
+func init() {
+	flag.StringVar(&socketAddr, "socket-addr", "tcp://0.0.0.0:26658", "tcp socket address")
+}
 // func init() {
 // 	fmt.Println("Reading from : " + os.Getenv("NODEPATH")+"/config/config.toml")
 // 	time.Sleep(1 * time.Second)

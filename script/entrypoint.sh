@@ -23,7 +23,15 @@ else
 fi
 sleep 1
 
-export TMHOME="/tendermint/nodes/node$ID"
+if [ -f "/tendermint/mytestnet" ]
+then
+    mkdir -p /tendermint/mytestnet
+    cd /tendermint/mytestnet
+    tendermint testnet
+fi
+
+
+export TMHOME="/tendermint/mytestnet/node$ID"
 
 if [ "$MODE" = "node" ]
 then

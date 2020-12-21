@@ -228,10 +228,10 @@ services:
 
 networks:
   localnet:
-    driver: bridge
+    #driver: bridge
     ipam:
-      driver: default
+      #driver: default
       config:
       -
         subnet: 172.168.10.0/16
-        gateway: 172.168.10.1
+        #gateway: 172.168.10.1

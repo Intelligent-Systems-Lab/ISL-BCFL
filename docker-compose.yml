@@ -7,7 +7,7 @@ services:
     ports:
       - "26656-26657:26656-26657"
     environment:
-      - MODE=node
+      - MODE=nodeapp
       - ID=0
     volumes:
       - ./script:/root
@@ -18,20 +18,20 @@ services:
       localnet:
         ipv4_address: 172.168.10.2
 
-  abci0:
-    container_name: abci0
-    image: tony92151/tendermint-docker
-    environment:
-      - MODE=app
-      - ID=0
-    volumes:
-      - ./script:/root
-      - ./nodes:/tendermint
-    entrypoint: /bin/bash
-    command: /root/entrypoint.sh
-    networks:
-      localnet:
-        ipv4_address: 172.168.10.6
+  # abci0:
+  #   container_name: abci0
+  #   image: tony92151/tendermint-docker
+  #   environment:
+  #     - MODE=app
+  #     - ID=0
+  #   volumes:
+  #     - ./script:/root
+  #     - ./nodes:/tendermint
+  #   entrypoint: /bin/bash
+  #   command: /root/entrypoint.sh
+  #   networks:
+  #     localnet:
+  #       ipv4_address: 172.168.10.6
 ##################################################
   node1:
     image: tony92151/tendermint-docker
@@ -39,7 +39,7 @@ services:
     ports:
       - "26661-26662:26656-26657"
     environment:
-      - MODE=node
+      - MODE=nodeapp
       - ID=1
     volumes:
       - ./script:/root
@@ -50,20 +50,20 @@ services:
       localnet:
         ipv4_address: 172.168.10.3
 
-  abci1:
-    container_name: abci1
-    image: tony92151/tendermint-docker
-    environment:
-      - MODE=app
-      - ID=1
-    volumes:
-      - ./script:/root
-      - ./nodes:/tendermint
-    entrypoint: /bin/bash
-    command: /root/entrypoint.sh
-    networks:
-      localnet:
-        ipv4_address: 172.168.10.7
+  # abci1:
+  #   container_name: abci1
+  #   image: tony92151/tendermint-docker
+  #   environment:
+  #     - MODE=app
+  #     - ID=1
+  #   volumes:
+  #     - ./script:/root
+  #     - ./nodes:/tendermint
+  #   entrypoint: /bin/bash
+  #   command: /root/entrypoint.sh
+  #   networks:
+  #     localnet:
+  #       ipv4_address: 172.168.10.7
 ##################################################
   node2:
     image: tony92151/tendermint-docker
@@ -71,7 +71,7 @@ services:
     ports:
       - "26663-26664:26656-26657"
     environment:
-      - MODE=node
+      - MODE=nodeapp
       - ID=2
     volumes:
       - ./script:/root
@@ -82,20 +82,20 @@ services:
       localnet:
         ipv4_address: 172.168.10.4
 
-  abci2:
-    container_name: abci2
-    image: tony92151/tendermint-docker
-    environment:
-      - MODE=app
-      - ID=2
-    volumes:
-      - ./script:/root
-      - ./nodes:/tendermint
-    entrypoint: /bin/bash
-    command: /root/entrypoint.sh
-    networks:
-      localnet:
-        ipv4_address: 172.168.10.8
+  # abci2:
+  #   container_name: abci2
+  #   image: tony92151/tendermint-docker
+  #   environment:
+  #     - MODE=app
+  #     - ID=2
+  #   volumes:
+  #     - ./script:/root
+  #     - ./nodes:/tendermint
+  #   entrypoint: /bin/bash
+  #   command: /root/entrypoint.sh
+  #   networks:
+  #     localnet:
+  #       ipv4_address: 172.168.10.8
 ##################################################
   node3:
     image: tony92151/tendermint-docker
@@ -103,7 +103,7 @@ services:
     ports:
       - "26665-26666:26656-26657"
     environment:
-      - MODE=node
+      - MODE=nodeapp
       - ID=3
     volumes:
       - ./script:/root
@@ -114,117 +114,22 @@ services:
       localnet:
         ipv4_address: 172.168.10.5
 
-  abci3:
-    container_name: abci3
-    image: tony92151/tendermint-docker
-    environment:
-      - MODE=app
-      - ID=3
-    volumes:
-      - ./script:/root
-      - ./nodes:/tendermint
-    entrypoint: /bin/bash
-    command: /root/entrypoint.sh
-    networks:
-      localnet:
-        ipv4_address: 172.168.10.9
-
-
-    # depends_on:
-    #   - node0
-
-  # node1:
-  #   image: tony92151/tendermint-docker
-  #   container_name: node1
-  #   ports:
-  #     - "26659-26660:26656-26657"
-  #   environment:
-  #     - MODE=node
-  #     - ID=1
-  #   volumes:
-  #     - ./script:/root
-  #     - ./build:/tendermint
-  #   networks:
-  #     localnet:
-  #       ipv4_address: 192.168.10.3
-
-  # node2:
-  #   image: tony92151/tendermint-docker
-  #   container_name: node2
-  #   environment:
-  #     - MODE=node
-  #     - ID=1
-  #   ports:
-  #     - "26661-26662:26656-26657"
-  #   volumes:
-  #     - ./script:/root
-  #     - ./build:/tendermint
-  #   networks:
-  #     localnet:
-  #       ipv4_address: 192.168.10.4
-
-  # node3:
-  #   image: tony92151/tendermint-docker
-  #   container_name: node3
-  #   environment:
-  #     - MODE=node
-  #     - ID=1
-  #   ports:
-  #     - "26663-26664:26656-26657"
-  #   volumes:
-  #     - ./script:/root
-  #     - ./build:/tendermint
-  #   networks:
-  #     localnet:
-  #       ipv4_address: 192.168.10.5
-
-  # abci0:
-  #   container_name: abci0
-  #   image: "abci"
-  #   build:
-  #     context: ./abci
-  #     dockerfile: Dockerfile
-  #   volumes:
-  #     - ./build:/tendermint:Z
-  #   networks:
-  #     localnet:
-  #       ipv4_address: 192.168.10.6
-
-  # abci1:
-  #   container_name: abci1
-  #   image: "abci"
-  #   build:
-  #     context: ./abci
-  #     dockerfile: Dockerfile
-  #   volumes:
-  #     - ./build:/tendermint:Z
-  #   networks:
-  #     localnet:
-  #       ipv4_address: 192.168.10.7
-
-  # abci2:
-  #   container_name: abci2
-  #   image: "abci"
-  #   build:
-  #     context: ./abci
-  #     dockerfile: Dockerfile
-  #   volumes:
-  #     - ./build:/tendermint:Z
-  #   networks:
-  #     localnet:
-  #       ipv4_address: 192.168.10.8
-
   # abci3:
   #   container_name: abci3
-  #   image: "abci"
-  #   build:
-  #     context: ./abci
-  #     dockerfile: Dockerfile
+  #   image: tony92151/tendermint-docker
+  #   environment:
+  #     - MODE=app
+  #     - ID=3
   #   volumes:
-  #     - ./build:/tendermint:Z
+  #     - ./script:/root
+  #     - ./nodes:/tendermint
+  #   entrypoint: /bin/bash
+  #   command: /root/entrypoint.sh
   #   networks:
   #     localnet:
-  #       ipv4_address: 192.168.10.9
+  #       ipv4_address: 172.168.10.9
+
+
 
 networks:
   localnet:

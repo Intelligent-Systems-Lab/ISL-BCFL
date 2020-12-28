@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 echo "  ___ ___ _      _      _   ___  "
@@ -48,12 +47,8 @@ else
     go mod init github.com/me/example
     echo "Building..."
     go build -o ticket main.go ticketstore.go
-    ./ticket
-    # cd $GOPATH/src/github.com
-    # git clone https://github.com/BrianPHChen/tendermint_isl.git
-    # cd tendermint_isl
-    # make tools
-    # make install_abci
-    # make indtall
-    # abci-cli ticketstore
+    ./ticket -config /tendermint/mytestnet/node$ID
 fi
+
+TX=$(base64 tx.txt)
+curl --header "Content-Type: application/json" -X POST --data "{\"jsonrpc\":\"2.0\", \"method\": \"broadcast_tx_sync\", \"params\": [\"$TX\"], \"id\": 1}" localhost:26657

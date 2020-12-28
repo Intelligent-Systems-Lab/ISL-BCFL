@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/tendermint/tendermint/abci/types"
 )
@@ -33,7 +34,8 @@ type State struct {
 }
 
 type Model struct {
-	weight float64
+	Name string
+	weight string
 }
 
 type Snapshot struct {
@@ -42,16 +44,21 @@ type Snapshot struct {
 	update map[uint64]bool
 }
 
+//type queryformat struct {
+//	aggregatedModel Model
+//	historyModel map[uint64]Snapshot
+//}
+
 type ModelTx struct {
 	Round		uint64	`json:"round"`
-	Weight		float64 `json:"weight"`
+	Weight		string `json:"weight"`
 	CID			uint64 	`json:"cid"`
 	Signature 	string 	`json:"signature"`
 }
 
 func NewTicketStoreApplication() *TicketStoreApplication {
 	return &TicketStoreApplication{
-		state: State{ aggregatedModel: Model{ weight: 0.0 },
+		state: State{ aggregatedModel: Model{ weight: "" },
 					  historyModel: make( map[uint64]Snapshot ),
 					  clientsNumber: 4,
 					},
@@ -59,8 +66,12 @@ func NewTicketStoreApplication() *TicketStoreApplication {
 }
 
 func (app *TicketStoreApplication) Info(req types.RequestInfo) types.ResponseInfo {
+	//var sdata string
+	//data := []byte(fmt.Sprintf(`{"round":%v, "model":%v}`, app.state.round, app.state.aggregatedModel.weight))
+	//json.Unmarshal(data, &sdata)
+	//fmt.Println(sdata)
 	return types.ResponseInfo{
-		Data:             fmt.Sprintf("{\"round\":%v, \"model\":%v}", app.state.round, app.state.aggregatedModel.weight),
+		Data:             fmt.Sprintf(`{"round":%v, "model":%v}`, app.state.round, app.state.aggregatedModel.weight),
 		LastBlockHeight:  int64(app.state.height),
 		LastBlockAppHash: app.state.rootHash,
 	}
@@ -97,7 +108,7 @@ func (app *TicketStoreApplication) DeliverTx(tx types.RequestDeliverTx) types.Re
 			Log: fmt.Sprint(ErrConflict)}
 	}
 	app.state.historyModel[nextRound].update[cid] = true
-	app.state.historyModel[nextRound].localModels[cid] = Model{weight: modelTx.Weight}
+	app.state.historyModel[nextRound].localModels[cid] = Model{Name: "model_"+strconv.Itoa(int(modelTx.Round)),weight: modelTx.Weight}
 	return types.ResponseDeliverTx{Code: codeTypeOK}
 }
 
@@ -106,14 +117,23 @@ func (app *TicketStoreApplication) CheckTx(tx types.RequestCheckTx) types.Respon
 }
 
 func (app *TicketStoreApplication) Commit() (resp types.ResponseCommit) {
+
 	allClientsUpdate := true
 	nextRound := app.state.round + 1
 
+	fmt.Printf("Update Status: \n")
 	for i := 0 ; i < app.state.clientsNumber; i++ {
+		fmt.Printf("CID %d: %v\n", i, app.state.historyModel[nextRound].update[uint64(i)])
 		if app.state.historyModel[nextRound].update[uint64(i)] == false {
 			allClientsUpdate = false
 		}
 	}
+
+	//for i := 0 ; i < app.state.clientsNumber; i++ {
+	//	if app.state.historyModel[nextRound].update[uint64(i)] == false {
+	//		allClientsUpdate = false
+	//	}
+	//}
 
 	modelsNextRound := app.state.historyModel[nextRound].localModels
 
@@ -127,10 +147,10 @@ func (app *TicketStoreApplication) Commit() (resp types.ResponseCommit) {
 }
 
 func (app *TicketStoreApplication) Query(reqQuery types.RequestQuery) types.ResponseQuery {
-	fmt.Printf("Debug: %v\n", string(reqQuery.Data))
-	fmt.Printf("Debug: %v\n", reqQuery.Path)
-	fmt.Printf("Debug: %v\n", string(reqQuery.Height))
-	fmt.Printf("Debug: %v\n", reqQuery.Prove)
+	//fmt.Printf("Debug: %v\n", string(reqQuery.Data))
+	//fmt.Printf("Debug: %v\n", reqQuery.Path)
+	//fmt.Printf("Debug: %v\n", string(reqQuery.Height))
+	//fmt.Printf("Debug: %v\n", reqQuery.Prove)
 	switch reqQuery.Path {
 	case "round":
 		return types.ResponseQuery{Value: []byte(fmt.Sprint(app.state.round))}
@@ -138,15 +158,18 @@ func (app *TicketStoreApplication) Query(reqQuery types.RequestQuery) types.Resp
 		return types.ResponseQuery{Value: []byte(fmt.Sprint(app.state.aggregatedModel.weight))}
 	case "clients":
 		return types.ResponseQuery{Value: []byte(fmt.Sprint(app.state.clientsNumber))}
+	case "broadcast_state":
+		return types.ResponseQuery{Value: []byte(fmt.Sprint())}
 	default:
 		return types.ResponseQuery{Log: fmt.Sprintf("Invalid query path. Expected hash, tx or ticket, got %v", reqQuery.Path)}
 	}
 }
 
-func AggregateModel(localModels map[uint64]Model, clientsNumber int) (float64) {
-	sum := 0.0
-	for i := 0; i < clientsNumber; i++ {
-		sum += localModels[uint64(i)].weight
-	}
-	return sum / float64(clientsNumber)
+func AggregateModel(localModels map[uint64]Model, clientsNumber int) (string) {
+	//sum := 0.0
+	//for i := 0; i < clientsNumber; i++ {
+	//	sum += localModels[uint64(i)].weight
+	//}
+	//return sum / float64(clientsNumber)
+	return "hello"
 }

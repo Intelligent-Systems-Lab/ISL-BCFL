@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/server/types"
 	"os"
+	"sync"
 	"time"
 
 	//"github.com/dgraph-io/badger"
@@ -49,26 +50,55 @@ func main()  {
 	fmt.Println("Reading from : " + configFile)
 	time.Sleep(1 * time.Second)
 
-	app := NewTicketStoreApplication()
-	
-	
-	node, err := newTendermint(app, configFile)
-	
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
-		os.Exit(2)
-	}
+	var wg sync.WaitGroup
+	message := make(chan string)
 
-	node.Start()
-	defer func() {
-		fmt.Println("Closing...")
-		node.Stop()
-		node.Wait()
-	}()
+
+	go func( wg sync.WaitGroup) {
+		wg.Add(0)
+		app := NewTicketStoreApplication()
+		node, err := newTendermint(app, configFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v", err)
+			os.Exit(2)
+		}
+
+		node.Start()
+
+		if (<-message == "Done"){
+			wg.Done()
+		}
+		defer func() {
+			fmt.Println("Closing...")
+			node.Stop()
+			node.Wait()
+		}()
+	}(wg)
+
+
+	//app := NewTicketStoreApplication()
+	//
+	//
+	//node, err := newTendermint(app, configFile)
+	//
+	//if err != nil {
+	//	fmt.Fprintf(os.Stderr, "%v", err)
+	//	os.Exit(2)
+	//}
+	//
+	//node.Start()
+	//defer func() {
+	//	fmt.Println("Closing...")
+	//	node.Stop()
+	//	node.Wait()
+	//}()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
+	<-c  // wait for get Signal
+	message<- "Done"
+
+	wg.Wait()
 	os.Exit(0)
 	
 	
@@ -98,7 +128,7 @@ func main()  {
 	// select {}
 }
 
-func newnode(mess chan, cfile string, app types.Application){
+func newnode(cfile string, app types.Application){
 	node, err := newTendermint(app, cfile)
 
 	if err != nil {

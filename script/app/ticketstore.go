@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os/exec"
 	"strconv"
 
 	"github.com/tendermint/tendermint/abci/types"
@@ -121,13 +122,13 @@ func (app *TicketStoreApplication) Commit() (resp types.ResponseCommit) {
 	allClientsUpdate := true
 	nextRound := app.state.round + 1
 
-	fmt.Printf("Update Status: \n")
-	for i := 0 ; i < app.state.clientsNumber; i++ {
-		fmt.Printf("CID %d: %v\n", i, app.state.historyModel[nextRound].update[uint64(i)])
-		if app.state.historyModel[nextRound].update[uint64(i)] == false {
-			allClientsUpdate = false
-		}
-	}
+	//fmt.Printf("Update Status: \n")
+	//for i := 0 ; i < app.state.clientsNumber; i++ {
+	//	fmt.Printf("CID %d: %v\n", i, app.state.historyModel[nextRound].update[uint64(i)])
+	//	if app.state.historyModel[nextRound].update[uint64(i)] == false {
+	//		allClientsUpdate = false
+	//	}
+	//}
 
 	//for i := 0 ; i < app.state.clientsNumber; i++ {
 	//	if app.state.historyModel[nextRound].update[uint64(i)] == false {
@@ -166,10 +167,11 @@ func (app *TicketStoreApplication) Query(reqQuery types.RequestQuery) types.Resp
 }
 
 func AggregateModel(localModels map[uint64]Model, clientsNumber int) (string) {
-	//sum := 0.0
-	//for i := 0; i < clientsNumber; i++ {
-	//	sum += localModels[uint64(i)].weight
-	//}
-	//return sum / float64(clientsNumber)
-	return "hello"
+	out, err := exec.Command("python", "hello.py").Output()
+	if err != nil {
+		panic(err)
+	}
+	//fmt.Printf("%s", out)
+	//fmt.Println()
+	return string(out)
 }

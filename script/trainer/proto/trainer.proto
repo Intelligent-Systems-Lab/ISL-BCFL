@@ -1,0 +1,25 @@
+
+syntax = "proto3";
+
+package pb;
+
+
+// If you want to get full package, enable this
+option go_package = "BCFL/trainer";
+//option go_package = "$GOPATH/github.com/BCFL/trainer";
+
+service Aggregator {
+  rpc Aggregate (TrainInfo) returns (TrainResult) {}
+}
+
+
+message TrainInfo {
+  int32 Round = 1;
+  string BaseModel = 2;
+}
+
+
+message TrainResult {
+  int32 Round = 1;
+  string BaseModelResult = 2;
+}

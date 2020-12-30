@@ -1,8 +1,23 @@
 
+instll_dep:
+	go install google.golang.org/protobuf/cmd/protoc-gen-go
+	python -m pip install grpcio
 
+#.ONESHELL:
 build_proto:
-	cd ./proto
-	protoc --go_out=plugins=grpc:. *.proto
+	#protoc -I=. --python_out=. --grpc_python_out=. proto/trainer.proto
+	#python3 -m grpc_tools.protoc -I . --python_out=. --grpc_python_out=. proto/trainer.proto
+	#protoc -I=${GOPATH}/src/github.com/ --go_out=. proto/trainer.proto
+	#
+	protoc --go-grpc_out=:. --go_out=:. proto/trainer.proto
+	mv BCFL ${GOPATH}/src/github.com
+	cd ${GOPATH}/src/github.com/BCFL/trainer
+	go mod init github.com/BCFL/trainer
+	go build
+	go install
 
 build:
-	go build -o trainer main.go ./proto/trniner.pb.go
+	go build -o trainer main.go ./proto/trainer.pb.go
+
+clean:
+	rm -r ${GOPATH}/src/github.com/BCFL

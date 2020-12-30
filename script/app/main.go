@@ -28,6 +28,8 @@ import (
 	"github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
+
+	_ trainer "github.com/BCFL/trainer"
 )
 
 //var flagAddress string

@@ -2,24 +2,41 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"os"
-	"time"
+	"github.com/BCFL/trainer"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"log"
 )
 
-var configFile string
+
 var flagAddress string
 
 func init() {
 	flag.StringVar(&flagAddress, "grpcip", "localhost:62287", "address of grpc endpoint")
-	// flag.StringVar(&flagAbci, "abci", "socket", "either socket or grpc")
-	
-	flag.StringVar(&configFile, "config", os.Getenv("HOME")+"/.tendermint/config/config.toml", "Path to config.toml")
 }
 
 func main()  {
 	flag.Parse()
-	configFile = configFile + "/config/config.toml"
-	fmt.Println("Reading from : " + configFile)
-	time.Sleep(1 * time.Second)
+
+
+	conn, err := grpc.Dial(flagAddress, grpc.WithInsecure())
+	if err != nil {
+		log.Fatalf("連線失敗：%v", err)
+	}
+	defer conn.Close()
+
+	// 建立新的 Calculator 客戶端，所以等一下就能夠使用 Calculator 的所有方法。
+	c := trainer.NewAggregatorClient(conn)
+
+	// 傳送新請求到遠端 gRPC 伺服器 Calculator 中，並呼叫 Plus 函式，讓兩個數字相加。
+	gotrain := &trainer.TrainInfo{
+		Round:     0,
+		BaseModel: "1323",
+	}
+
+	r, err := c.Aggregate(context.Background(), gotrain)
+	if err != nil {
+		log.Fatalf("無法執行 Plus 函式：%v", err)
+	}
+	log.Printf("回傳結果：%d", r.GetBaseModelResult())
 }

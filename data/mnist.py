@@ -52,7 +52,8 @@ for i in range(num_package):
 for p in range(len(packages)):
     pk = pd.concat(packages[p])
     pk = pk.sample(frac=1).reset_index(drop=True)
+    del pk["index"]
     save_path = args.data+"/mnist_train_{}.csv".format(p)
     print("Create : mnist_train_{}.csv".format(p))
-    pk.to_csv(save_path)
+    pk.to_csv(save_path,mode = 'w', index=False)
     

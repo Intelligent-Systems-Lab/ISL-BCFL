@@ -36,6 +36,7 @@ import (
 //var flagAddress string
 //var flagAbci string
 
+
 var configFile string
 var dataFile string
 
@@ -53,46 +54,43 @@ func main()  {
 	fmt.Println("Reading from : " + configFile)
 	time.Sleep(1 * time.Second)
 
-	//ListBaseModel := LBasemodel{}
-	//QueueIncomingModel := QImcomingModel{}
-	//QueueBroadcastModel := QBroadcastModel{}
-
-	ListBaseModel := make(chan LBasemodel)
-	//ListIncomingModel := make(chan LImcomingModel)
-	//ListBroadcastModel := make(chan LBroadcastModel)
-	//threadhold := 5
-	//data := dataFile
-
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 
+	// initialize the channel
+	// https://ukiahsmith.com/blog/initializing-channels-in-go/
+	ListBaseModel := make(chan LBasemodel)
+	ListIncomingModel := make(chan LIncomingModel)
 
-	//NodeRunner(logger, configFile)
-	////////////////////////////////////////////////////////////
-	logger.Info("Start node...")
-
-	app := NewTicketStoreApplication(logger, ListBaseModel)
-	node, err := newTendermint(app, configFile)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
-		os.Exit(2)
-	}
-
-	node.Start()
-
-	defer func() {
-		logger.Info("Node closing...")
-		node.Stop()
-		node.Wait()
+	// initialize the channel
+	go func() {
+		ListBaseModel <- LBasemodel{
+			lbasemodel: []ModelStructure{},
+		}
+		ListIncomingModel <- LIncomingModel{
+			lincoming: []ModelStructure{},
+		}
+		//<-ListBaseModel
+		//<-ListIncomingModel
+		return
 	}()
-	////////////////////////////////////////////////////////////
 
+	 <-ListBaseModel
+	//fmt.Println(m)
+	//
+	//time.Sleep(1 *  time.Second)
 
-	//go func() {
-	//	addr := "localhost:62287"
-	//	AggRunner(addr)
-	//}()
-	//logger.Info("dfsdf")
+	//go NodeRunner(logger, configFile, &ListBaseModel)
 
+	logger.Info("Start AggRunner")
+	threshold := 4
+	addr := "localhost:62287"
+	go AggRunner(logger, addr, &ListIncomingModel, uint32(threshold), &ListBaseModel)
+	logger.Info("End AggRunner")
+
+	defer func(){
+		close(ListBaseModel)
+		close(ListIncomingModel)
+	}()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -103,55 +101,74 @@ func main()  {
 	os.Exit(0)
 }
 
+func NodeRunner(logger log.Logger,configFile string, LB *chan LBasemodel){
+	logger.Info("Start node...")
 
-//func NodeRunner(logger log.Logger, configFile string){
-//	logger.Info("Start node...")
-//
-//	app := NewTicketStoreApplication(logger)
-//	node, err := newTendermint(app, configFile)
-//	if err != nil {
-//		fmt.Fprintf(os.Stderr, "%v", err)
-//		os.Exit(2)
-//	}
-//
-//	node.Start()
-//
-//	defer func() {
-//		logger.Info("Node closing...")
-//		node.Stop()
-//		node.Wait()
-//	}()
-//}
+	app := NewTicketStoreApplication(logger, *LB)
+	node, err := newTendermint(app, configFile)
+	if err != nil {
+	fmt.Fprintf(os.Stderr, "%v", err)
+	os.Exit(2)
+	}
+	node.Start()
 
-//func AggRunner(addr string){
-//	aggregator := NewAggregator(addr)
-//	aggregator.SetTmpPath("/tmp/model.txt")
-//}
-//
+	defer func() {
+		logger.Info("Node closing...")
+		node.Stop()
+		node.Wait()
+	}()
+
+}
+
+func AggRunner(logger log.Logger, addr string, LI *chan LIncomingModel, thhold uint32, LB *chan LBasemodel){
+	aggregator := NewAggregator(logger, addr, LI, LB, thhold)
+	aggregator.SetTmpPath("/tmp/model.txt")
+	go func() {
+		pre := <-*LI
+		aa:=append(pre.lincoming, ModelStructure{
+			round:    0,
+			b64model: "45",
+		})
+		*LI<- LIncomingModel{lincoming: aa}
+	}()
+	time.Sleep(2*time.Second)
+
+	logger.Info("AggServices running 1")
+	mm := GetIncomingChannel(*LI)
+	logger.Info("AggServices running 1")
+	msg:= mm.lincoming
+	logger.Info("AggServices running 1")
+	fmt.Println(msg)
+
+
+	logger.Info("AggServices running 2")
+	mm2 := GetIncomingChannel(*LI)
+	logger.Info("AggServices running 2")
+	msg2:= mm2.lincoming
+	logger.Info("AggServices running 2")
+	fmt.Println(msg2)
+
+	logger.Info("AggServices running Done")
+	//for{
+	//	logger.Info("AggServices running...")
+	//	//aggregator.AggServices()
+	//	mm := <-*LI
+	//	msg:= mm.lincoming
+	//	fmt.Println(msg)
+	//	go func() {
+	//		*LI<-mm
+	//	}()
+	//	//logger.Info("AggServices end running...")
+	//	time.Sleep(1 *  time.Millisecond)
+	//	logger.Info("AggServices running Done")
+	//}
+}
+
 //func MulticastRunner(addr string){
 //
 //}
 
-//func newnode(cfile string, app types.Application){
-//	node, err := newTendermint(app, cfile)
-//
-//	if err != nil {
-//		fmt.Fprintf(os.Stderr, "%v", err)
-//		os.Exit(2)
-//	}
-//
-//	node.Start()
-//	defer func() {
-//		fmt.Println("Closing...")
-//		node.Stop()
-//		node.Wait()
-//	}()
-//
-//	c := make(chan os.Signal, 1)
-//	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-//	<-c
-//	os.Exit(0)
-//}
+
 
 
 func newTendermint(app abci.Application, configFile string) (*nm.Node, error) {
@@ -204,4 +221,22 @@ func newTendermint(app abci.Application, configFile string) (*nm.Node, error) {
 	}
 
 	return node, nil
+}
+
+func  GetIncomingChannel(GO chan LIncomingModel) LIncomingModel {
+	msg := <-GO
+	go func() {
+		GO<- msg
+	}()
+	return msg
+}
+
+func  AppendIncomingChannel(GO chan LIncomingModel, m ModelStructure) LIncomingModel {
+	msg := <-GO
+	go func() {
+		GO<- LIncomingModel{
+			append(msg.lincoming,m),
+		}
+	}()
+	return msg
 }

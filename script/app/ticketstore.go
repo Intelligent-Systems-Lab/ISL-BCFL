@@ -3,10 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os/exec"
+	_ "log"
+	"os"
 	"strconv"
 
 	"github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 const (
@@ -21,8 +23,11 @@ var (
 )
 
 type TicketStoreApplication struct {
+	logger log.Logger
 	types.BaseApplication
 	state State
+	ListBaseModel chan LBasemodel
+	lastRound int64
 }
 
 type State struct {
@@ -57,12 +62,15 @@ type ModelTx struct {
 	Signature 	string 	`json:"signature"`
 }
 
-func NewTicketStoreApplication() *TicketStoreApplication {
+func NewTicketStoreApplication(logger log.Logger,ListBaseModel chan LBasemodel) *TicketStoreApplication {
+
 	return &TicketStoreApplication{
 		state: State{ aggregatedModel: Model{ weight: "" },
 					  historyModel: make( map[uint64]Snapshot ),
 					  clientsNumber: 4,
 					},
+		ListBaseModel : ListBaseModel,
+		logger : logger,
 		}
 }
 
@@ -79,6 +87,7 @@ func (app *TicketStoreApplication) Info(req types.RequestInfo) types.ResponseInf
 }
 
 func (app *TicketStoreApplication) DeliverTx(tx types.RequestDeliverTx) types.ResponseDeliverTx {
+	app.logger.Info("DeliverTx by: "+ os.Getenv("ID"))
 	var modelTx ModelTx
 	err := json.Unmarshal(tx.Tx, &modelTx)
 
@@ -86,6 +95,15 @@ func (app *TicketStoreApplication) DeliverTx(tx types.RequestDeliverTx) types.Re
 		return types.ResponseDeliverTx{
 			Code: codeTypeEncodingError,
 			Log:  fmt.Sprint(err)}
+	}
+
+	//aaa := (<-app.ListBaseModel).lbasemodel
+
+	app.ListBaseModel<- LBasemodel{
+		lbasemodel: append((<-app.ListBaseModel).lbasemodel, ModelStructure{
+			round: modelTx.Round,
+			b64model: modelTx.Weight,
+		}),
 	}
 
 	nextRound := app.state.round + 1
@@ -119,8 +137,10 @@ func (app *TicketStoreApplication) CheckTx(tx types.RequestCheckTx) types.Respon
 
 func (app *TicketStoreApplication) Commit() (resp types.ResponseCommit) {
 
-	allClientsUpdate := true
-	nextRound := app.state.round + 1
+	//allClientsUpdate := true
+	//nextRound := app.state.round + 1
+
+	app.logger.Info("Commit by: "+ os.Getenv("ID"))
 
 	//fmt.Printf("Update Status: \n")
 	//for i := 0 ; i < app.state.clientsNumber; i++ {
@@ -136,12 +156,12 @@ func (app *TicketStoreApplication) Commit() (resp types.ResponseCommit) {
 	//	}
 	//}
 
-	modelsNextRound := app.state.historyModel[nextRound].localModels
+	//modelsNextRound := app.state.historyModel[nextRound].localModels
 
-	if allClientsUpdate {
-		app.state.aggregatedModel = Model{weight: AggregateModel(modelsNextRound, app.state.clientsNumber)}
-		app.state.round++
-	}
+	//if allClientsUpdate {
+	//	//app.state.aggregatedModel = Model{weight: AggregateModel(modelsNextRound, app.state.clientsNumber)}
+	//	app.state.round++
+	//}
 
 	app.state.height++
 	return types.ResponseCommit{Data: []byte{0x00}}
@@ -166,12 +186,22 @@ func (app *TicketStoreApplication) Query(reqQuery types.RequestQuery) types.Resp
 	}
 }
 
-func AggregateModel(localModels map[uint64]Model, clientsNumber int) (string) {
-	out, err := exec.Command("python", "hello.py").Output()
-	if err != nil {
-		panic(err)
-	}
-	//fmt.Printf("%s", out)
-	//fmt.Println()
-	return string(out)
+func (app *TicketStoreApplication) EndBlock(req types.RequestEndBlock) types.ResponseEndBlock {
+	app.logger.Info("EndBlock by: "+ os.Getenv("ID"))
+	return types.ResponseEndBlock{}
 }
+
+func (app *TicketStoreApplication) BeginBlock(req types.RequestBeginBlock) types.ResponseBeginBlock {
+	app.logger.Info("BeginBlock by: "+ os.Getenv("ID"))
+	return types.ResponseBeginBlock{}
+}
+
+//func AggregateModel(localModels map[uint64]Model, clientsNumber int) (string) {
+//	out, err := exec.Command("python", "hello.py").Output()
+//	if err != nil {
+//		panic(err)
+//	}
+//	//fmt.Printf("%s", out)
+//	//fmt.Println()
+//	return string(out)
+//}

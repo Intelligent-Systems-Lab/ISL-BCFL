@@ -29,19 +29,22 @@ import (
 	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
 
-	_ trainer "github.com/BCFL/trainer"
+	//_ trainer "github.com/BCFL/trainer"
+
 )
 
 //var flagAddress string
 //var flagAbci string
 
 var configFile string
+var dataFile string
 
 func init() {
 	//flag.StringVar(&flagAddress, "address", "tcp://0.0.0.0:26658", "address of application socket")
 	//flag.StringVar(&flagAbci, "abci", "socket", "either socket or grpc")
 	
 	flag.StringVar(&configFile, "config", os.Getenv("HOME")+"/.tendermint/config/config.toml", "Path to config.toml")
+	flag.StringVar(&dataFile, "data", "", "Path to csv dataset")
 }
 
 func main()  {
@@ -50,34 +53,45 @@ func main()  {
 	fmt.Println("Reading from : " + configFile)
 	time.Sleep(1 * time.Second)
 
-	//var wg sync.WaitGroup
-	//message := make(chan string)
+	//ListBaseModel := LBasemodel{}
+	//QueueIncomingModel := QImcomingModel{}
+	//QueueBroadcastModel := QBroadcastModel{}
+
+	ListBaseModel := make(chan LBasemodel)
+	//ListIncomingModel := make(chan LImcomingModel)
+	//ListBroadcastModel := make(chan LBroadcastModel)
+	//threadhold := 5
+	//data := dataFile
 
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 
-	go func() {
 
-		logger.Info("Start node...")
+	//NodeRunner(logger, configFile)
+	////////////////////////////////////////////////////////////
+	logger.Info("Start node...")
 
-		app := NewTicketStoreApplication()
-		node, err := newTendermint(app, configFile)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%v", err)
-			os.Exit(2)
-		}
+	app := NewTicketStoreApplication(logger, ListBaseModel)
+	node, err := newTendermint(app, configFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v", err)
+		os.Exit(2)
+	}
 
-		node.Start()
+	node.Start()
 
-		defer func() {
-			logger.Info("Node closing...")
-			node.Stop()
-			node.Wait()
-		}()
+	defer func() {
+		logger.Info("Node closing...")
+		node.Stop()
+		node.Wait()
 	}()
+	////////////////////////////////////////////////////////////
 
-	go func() {
-		aggregator := NewAggregator("localhost:62287")
-	}()
+
+	//go func() {
+	//	addr := "localhost:62287"
+	//	AggRunner(addr)
+	//}()
+	//logger.Info("dfsdf")
 
 
 	c := make(chan os.Signal, 1)
@@ -87,33 +101,36 @@ func main()  {
 
 	//wg.Wait()
 	os.Exit(0)
-	
-	
-	
-	// logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
-
-	// // Start the listener
-	// srv, err := abciserver.NewServer(flagAddress, flagAbci, app)
-	// if err != nil {
-	// 	fmt.Fprintf(os.Stderr, "error starting socket server: %v", err)
-	// 	os.Exit(1)
-	// }
-	// srv.SetLogger(logger.With("module", "abci-server"))
-	// if err := srv.Start(); err != nil {
-	// 	fmt.Fprintf(os.Stderr, "error starting socket server: %v", err)
-	// 	os.Exit(1)
-	// }
-	// // Stop upon receiving SIGTERM or CTRL-C.
-	// tmos.TrapSignal(logger, func() {
-	// 	// Cleanup
-	// 	if err := srv.Stop(); err != nil {
-	// 		logger.Error("Error while stopping server", "err", err)
-	// 	}
-	// })
-
-	// // Run forever.
-	// select {}
 }
+
+
+//func NodeRunner(logger log.Logger, configFile string){
+//	logger.Info("Start node...")
+//
+//	app := NewTicketStoreApplication(logger)
+//	node, err := newTendermint(app, configFile)
+//	if err != nil {
+//		fmt.Fprintf(os.Stderr, "%v", err)
+//		os.Exit(2)
+//	}
+//
+//	node.Start()
+//
+//	defer func() {
+//		logger.Info("Node closing...")
+//		node.Stop()
+//		node.Wait()
+//	}()
+//}
+
+//func AggRunner(addr string){
+//	aggregator := NewAggregator(addr)
+//	aggregator.SetTmpPath("/tmp/model.txt")
+//}
+//
+//func MulticastRunner(addr string){
+//
+//}
 
 //func newnode(cfile string, app types.Application){
 //	node, err := newTendermint(app, cfile)

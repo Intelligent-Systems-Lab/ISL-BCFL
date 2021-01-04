@@ -46,7 +46,7 @@ else
     cd $GOPATH/src/github.com/me/example
     go mod init github.com/me/example
     echo "Building..."
-    go build -o ticket main.go ticketstore.go
+    go build -o ticket main.go ticketstore.go type.go
     ./ticket -config /tendermint/mytestnet/node$ID
 fi
 

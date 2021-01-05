@@ -36,6 +36,7 @@ import (
 //var flagAddress string
 //var flagAbci string
 
+
 var configFile string
 var dataFile string
 
@@ -53,17 +54,31 @@ func main()  {
 	fmt.Println("Reading from : " + configFile)
 	time.Sleep(1 * time.Second)
 
-	//ListBaseModel := LBasemodel{}
-	//QueueIncomingModel := QImcomingModel{}
-	//QueueBroadcastModel := QBroadcastModel{}
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 
+	// initialize the channel
+	// https://ukiahsmith.com/blog/initializing-channels-in-go/
 	ListBaseModel := make(chan LBasemodel)
 	ListIncomingModel := make(chan LIncomingModel)
 	//ListBroadcastModel := make(chan LBroadcastModel)
 	//threadhold := 5
 	//data := dataFile
 
-	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+	// initialize the channel
+	go func() {
+		ListBaseModel <- LBasemodel{
+			lbasemodel: []ModelStructure{},
+		}
+		return
+	}()
+	go func() {
+		ListIncomingModel <- LIncomingModel{
+			lincoming: []ModelStructure{},
+		}
+		return
+	}()
+	//<-ListBaseModel
+	//<-ListIncomingModel
 
 	addr := "localhost:62287"
 	aggapp := AggRunner(logger,addr,&ListIncomingModel,4, &ListBaseModel)

@@ -170,6 +170,7 @@ func (app *TicketStoreApplication) Commit() (resp types.ResponseCommit) {
 	//	//app.state.aggregatedModel = Model{weight: AggregateModel(modelsNextRound, app.state.clientsNumber)}
 	//	app.state.round++
 	//}
+	//aa,_ := json.Marshal(app)
 
 	app.state.height++
 	return types.ResponseCommit{Data: []byte{0x00}}

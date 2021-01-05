@@ -1,6 +1,7 @@
 package main
 
 import (
+	//"log"
 	//"github.com/orktes/go-torch"
 	//"io"
 	//b64 "encoding/base64"
@@ -45,7 +46,7 @@ func (app *AggregatorApplication) Aggregate(models []string) string{
 		blankWriter = blankWriter+s
 	}
 
-	writetxt(blankWriter, app.tmppath)
+	writers(blankWriter, app.tmppath)
 
 	out, err := exec.Command("python", "agg.py",app.tmppath).Output()
 
@@ -108,7 +109,7 @@ func (app *AggregatorApplication)MulticastListening(address string){
 
 }
 
-func writetxt(s string, path string)  {
+func writers(s string, path string)  {
 	file, err := os.Create(path)
 	if err != nil {
 		panic(err)

@@ -99,12 +99,10 @@ func (app *TicketStoreApplication) DeliverTx(tx types.RequestDeliverTx) types.Re
 
 	//aaa := (<-app.ListBaseModel).lbasemodel
 
-	app.ListBaseModel<- LBasemodel{
-		lbasemodel: append((<-app.ListBaseModel).lbasemodel, ModelStructure{
-			round: modelTx.Round,
-			b64model: modelTx.Weight,
-		}),
-	}
+	AppendBaseChannel(app.ListBaseModel, ModelStructure{
+		round: modelTx.Round,
+		b64model: modelTx.Weight,
+	})
 
 	nextRound := app.state.round + 1
 

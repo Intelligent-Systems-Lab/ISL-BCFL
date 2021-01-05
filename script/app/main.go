@@ -66,26 +66,7 @@ func main()  {
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 
 
-	//NodeRunner(logger, configFile)
-	////////////////////////////////////////////////////////////
-	logger.Info("Start node...")
-
-	app := NewTicketStoreApplication(logger, ListBaseModel)
-	node, err := newTendermint(app, configFile)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
-		os.Exit(2)
-	}
-
-	node.Start()
-
-	defer func() {
-		logger.Info("Node closing...")
-		node.Stop()
-		node.Wait()
-	}()
-	////////////////////////////////////////////////////////////
-
+	go NodeRunner(logger, configFile, &ListBaseModel)
 
 	//go func() {
 	//	addr := "localhost:62287"
@@ -103,55 +84,27 @@ func main()  {
 	os.Exit(0)
 }
 
+func NodeRunner(logger log.Logger,cfile string, ListBaseModel *chan LBasemodel){
+	app := NewTicketStoreApplication(logger, *ListBaseModel)
+	node, err := newTendermint(app, cfile)
 
-//func NodeRunner(logger log.Logger, configFile string){
-//	logger.Info("Start node...")
-//
-//	app := NewTicketStoreApplication(logger)
-//	node, err := newTendermint(app, configFile)
-//	if err != nil {
-//		fmt.Fprintf(os.Stderr, "%v", err)
-//		os.Exit(2)
-//	}
-//
-//	node.Start()
-//
-//	defer func() {
-//		logger.Info("Node closing...")
-//		node.Stop()
-//		node.Wait()
-//	}()
-//}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v", err)
+		os.Exit(2)
+	}
 
-//func AggRunner(addr string){
-//	aggregator := NewAggregator(addr)
-//	aggregator.SetTmpPath("/tmp/model.txt")
-//}
-//
-//func MulticastRunner(addr string){
-//
-//}
+	node.Start()
+	defer func() {
+		fmt.Println("Closing...")
+		node.Stop()
+		node.Wait()
+	}()
 
-//func newnode(cfile string, app types.Application){
-//	node, err := newTendermint(app, cfile)
-//
-//	if err != nil {
-//		fmt.Fprintf(os.Stderr, "%v", err)
-//		os.Exit(2)
-//	}
-//
-//	node.Start()
-//	defer func() {
-//		fmt.Println("Closing...")
-//		node.Stop()
-//		node.Wait()
-//	}()
-//
-//	c := make(chan os.Signal, 1)
-//	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-//	<-c
-//	os.Exit(0)
-//}
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
+	os.Exit(0)
+}
 
 
 func newTendermint(app abci.Application, configFile string) (*nm.Node, error) {
@@ -204,4 +157,40 @@ func newTendermint(app abci.Application, configFile string) (*nm.Node, error) {
 	}
 
 	return node, nil
+}
+
+func  GetBaseChannel(GO chan LBasemodel) LBasemodel {
+	msg := <-GO
+	go func() {
+		GO<- msg
+	}()
+	return msg
+}
+
+func  AppendBaseChannel(GO chan LBasemodel, m ModelStructure) LBasemodel {
+	msg := <-GO
+	go func() {
+		GO<- LBasemodel{
+			append(msg.lbasemodel,m),
+		}
+	}()
+	return msg
+}
+
+func  GetIncomingChannel(GO chan LIncomingModel) LIncomingModel {
+	msg := <-GO
+	go func() {
+		GO<- msg
+	}()
+	return msg
+}
+
+func  AppendIncomingChannel(GO chan LIncomingModel, m ModelStructure) LIncomingModel {
+	msg := <-GO
+	go func() {
+		GO<- LIncomingModel{
+			append(msg.lincomingmodel,m),
+		}
+	}()
+	return msg
 }

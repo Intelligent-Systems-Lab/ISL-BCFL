@@ -14,12 +14,12 @@ type ModelStructure struct {
 }
 
 ///////////////////////////////////////
-type LImcomingModel struct {
-	cq []ModelStructure
+type LIncomingModel struct {
+	lincomingmodel []ModelStructure
 }
 
 type LBroadcastModel struct {
-	cq []ModelStructure
+	lbroadcastmodel []ModelStructure
 }
 ///////////////////////////////////////
 //

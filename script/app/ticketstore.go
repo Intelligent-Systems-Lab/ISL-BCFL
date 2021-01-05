@@ -28,6 +28,8 @@ type TicketStoreApplication struct {
 	state State
 	ListBaseModel chan LBasemodel
 	lastRound int64
+
+	agg *AggregatorApplication
 }
 
 type State struct {
@@ -62,7 +64,7 @@ type ModelTx struct {
 	Signature 	string 	`json:"signature"`
 }
 
-func NewTicketStoreApplication(logger log.Logger,ListBaseModel chan LBasemodel) *TicketStoreApplication {
+func NewTicketStoreApplication(logger log.Logger,ListBaseModel chan LBasemodel, agg *AggregatorApplication) *TicketStoreApplication {
 
 	return &TicketStoreApplication{
 		state: State{ aggregatedModel: Model{ weight: "" },
@@ -71,6 +73,7 @@ func NewTicketStoreApplication(logger log.Logger,ListBaseModel chan LBasemodel) 
 					},
 		ListBaseModel : ListBaseModel,
 		logger : logger,
+		agg: agg,
 		}
 }
 
@@ -155,6 +158,13 @@ func (app *TicketStoreApplication) Commit() (resp types.ResponseCommit) {
 	//}
 
 	//modelsNextRound := app.state.historyModel[nextRound].localModels
+	if app.agg.AggServices()==true{
+		result := GetBaseChannel(app.ListBaseModel).lbasemodel
+		app.state.aggregatedModel = Model{
+			weight: result[len(result)].b64model,
+		}
+		app.state.round++
+	}
 
 	//if allClientsUpdate {
 	//	//app.state.aggregatedModel = Model{weight: AggregateModel(modelsNextRound, app.state.clientsNumber)}

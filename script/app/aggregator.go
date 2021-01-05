@@ -57,7 +57,7 @@ func (app *AggregatorApplication) Aggregate(models []string) string{
 	return  string(out)
 }
 
-func (app *AggregatorApplication)AggServices() {
+func (app *AggregatorApplication)AggServices() interface{}{
 
 	//copy//////////////////////////////
 	LincomingCopy := GetIncomingChannel(*app.LI).lincomingmodel
@@ -66,6 +66,9 @@ func (app *AggregatorApplication)AggServices() {
 	// [round 0, round 1, round 2, round 3, round 4]
 	//										len()=5
 	lastround := len(LbaseCopy)-1 // if lastround=-1, pass anything.
+	if lastround == -1{
+		return nil
+	}
 	////////////////////////////////////
 
 	var filteredModel []ModelStructure
@@ -83,7 +86,7 @@ func (app *AggregatorApplication)AggServices() {
 		}
 		result = app.Aggregate(filteredModels)
 	}else{
-		return
+		return nil
 	}
 
 	//save//////////////////////////////
@@ -94,9 +97,9 @@ func (app *AggregatorApplication)AggServices() {
 			round: uint64(lastround+1),
 			b64model: result,
 		})
-		return
+		return true
 	}else{
-		return
+		return nil
 	}
 	////////////////////////////////////
 }

@@ -58,15 +58,17 @@ func main()  {
 	//QueueBroadcastModel := QBroadcastModel{}
 
 	ListBaseModel := make(chan LBasemodel)
-	//ListIncomingModel := make(chan LImcomingModel)
+	ListIncomingModel := make(chan LIncomingModel)
 	//ListBroadcastModel := make(chan LBroadcastModel)
 	//threadhold := 5
 	//data := dataFile
 
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 
+	addr := "localhost:62287"
+	aggapp := AggRunner(logger,addr,&ListIncomingModel,4, &ListBaseModel)
 
-	go NodeRunner(logger, configFile, &ListBaseModel)
+	go NodeRunner(logger, configFile, &ListBaseModel, aggapp)
 
 	//go func() {
 	//	addr := "localhost:62287"
@@ -84,8 +86,8 @@ func main()  {
 	os.Exit(0)
 }
 
-func NodeRunner(logger log.Logger,cfile string, ListBaseModel *chan LBasemodel){
-	app := NewTicketStoreApplication(logger, *ListBaseModel)
+func NodeRunner(logger log.Logger,cfile string, ListBaseModel *chan LBasemodel,agg *AggregatorApplication){
+	app := NewTicketStoreApplication(logger, *ListBaseModel, agg)
 	node, err := newTendermint(app, cfile)
 
 	if err != nil {
@@ -104,6 +106,13 @@ func NodeRunner(logger log.Logger,cfile string, ListBaseModel *chan LBasemodel){
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 	os.Exit(0)
+}
+
+func AggRunner(logger log.Logger, addr string, LI *chan LIncomingModel, thhold uint32, LB *chan LBasemodel) *AggregatorApplication {
+	aggregator := NewAggregator(logger, addr, LI, LB, thhold)
+	aggregator.SetTmpPath("/tmp/model.txt")
+
+	return aggregator
 }
 
 

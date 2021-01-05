@@ -92,6 +92,7 @@ func (app *AggregatorApplication)AggServices() {
 	if Equal(LbaseCopy, LBase_.lbasemodel){
 		app.logger.Info("Aggregating...")
 		AppendBaseChannel(*app.LB, ModelStructure{
+			//from: ,
 			round: uint64(lastround+1),
 			b64model: result,
 		})

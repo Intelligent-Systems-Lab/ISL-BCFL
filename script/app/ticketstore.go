@@ -28,6 +28,8 @@ type TicketStoreApplication struct {
 	state State
 	ListBaseModel chan LBasemodel
 	lastRound int64
+
+	//Agg *AggregatorApplication
 }
 
 type State struct {
@@ -71,6 +73,7 @@ func NewTicketStoreApplication(logger log.Logger,ListBaseModel chan LBasemodel) 
 					},
 		ListBaseModel : ListBaseModel,
 		logger : logger,
+
 		}
 }
 
@@ -99,12 +102,10 @@ func (app *TicketStoreApplication) DeliverTx(tx types.RequestDeliverTx) types.Re
 
 	//aaa := (<-app.ListBaseModel).lbasemodel
 
-	app.ListBaseModel<- LBasemodel{
-		lbasemodel: append((<-app.ListBaseModel).lbasemodel, ModelStructure{
-			round: modelTx.Round,
-			b64model: modelTx.Weight,
-		}),
-	}
+	AppendBaseChannel(app.ListBaseModel, ModelStructure{
+		round: modelTx.Round,
+		b64model: modelTx.Weight,
+	})
 
 	nextRound := app.state.round + 1
 
@@ -162,6 +163,7 @@ func (app *TicketStoreApplication) Commit() (resp types.ResponseCommit) {
 	//	//app.state.aggregatedModel = Model{weight: AggregateModel(modelsNextRound, app.state.clientsNumber)}
 	//	app.state.round++
 	//}
+	//aa,_ := json.Marshal(app)
 
 	app.state.height++
 	return types.ResponseCommit{Data: []byte{0x00}}

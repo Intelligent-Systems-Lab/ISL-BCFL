@@ -78,15 +78,17 @@ func main()  {
 	//<-ListIncomingModel
 
 
-	// Start Node Runner
-	//go NodeRunner(logger, configFile, &ListBaseModel)
+
 
 	// Start Agg Runner
-	logger.Info("Start AggRunner")
-	threshold := 4
-	addr := "localhost:62287"
-	go AggRunner(logger, addr, &ListIncomingModel, uint32(threshold), &ListBaseModel)
-	logger.Info("End AggRunner")
+	//logger.Info("Start AggRunner")
+	//threshold := 4
+	//addr := "localhost:62287"
+	//aggapp := AggRunner(logger, addr, &ListIncomingModel, uint32(threshold), &ListBaseModel)
+	//logger.Info("End AggRunner")
+
+	// Start Node Runner
+	go NodeRunner(logger, configFile, &ListBaseModel)
 
 	defer func(){
 		close(ListBaseModel)
@@ -121,41 +123,42 @@ func NodeRunner(logger log.Logger,configFile string, LB *chan LBasemodel){
 
 }
 
-func AggRunner(logger log.Logger, addr string, LI *chan LIncomingModel, thhold uint32, LB *chan LBasemodel){
-	aggregator := NewAggregator(logger, addr, LI, LB, thhold)
-	aggregator.SetTmpPath("/tmp/model.txt")
-
-	// test
-	//AppendIncomingChannel(*LI, ModelStructure{
-	//	round:    0,
-	//	b64model: "45",
-	//})
-	//
-	//AppendBaseChannel(*LB, ModelStructure{
-	//	round:    0,
-	//	b64model: "87",
-	//})
-	//
-	//logger.Info("AggServices running 1")
-	//fmt.Println(GetIncomingChannel(*LI).lincoming)
-	//
-	//logger.Info("AggServices running 2")
-	//fmt.Println(GetBaseChannel(*LB).lbasemodel)
-
-
-	//logger.Info("AggServices running Done")
-	delayer := false
-	for{
-		delayer = !delayer
-		if delayer{
-			logger.Info("AggServices running...")
-		}
-		aggregator.AggServices()
-		//logger.Info("AggServices end running...")
-		time.Sleep(500 *  time.Millisecond)
-		//logger.Info("AggServices running Done")
-	}
-}
+//func AggRunner(logger log.Logger, addr string, LI *chan LIncomingModel, thhold uint32, LB *chan LBasemodel) *AggregatorApplication {
+//	aggregator := NewAggregator(logger, addr, LI, LB, thhold)
+//	aggregator.SetTmpPath("/tmp/model.txt")
+//
+//	// test
+//	//AppendIncomingChannel(*LI, ModelStructure{
+//	//	round:    0,
+//	//	b64model: "45",
+//	//})
+//	//
+//	//AppendBaseChannel(*LB, ModelStructure{
+//	//	round:    0,
+//	//	b64model: "87",
+//	//})
+//	//
+//	//logger.Info("AggServices running 1")
+//	//fmt.Println(GetIncomingChannel(*LI).lincoming)
+//	//
+//	//logger.Info("AggServices running 2")
+//	//fmt.Println(GetBaseChannel(*LB).lbasemodel)
+//
+//
+//	//logger.Info("AggServices running Done")
+//	//delayer := false
+//	//for{
+//	//	delayer = !delayer
+//	//	if delayer{
+//	//		logger.Info("AggServices running...")
+//	//	}
+//	//	aggregator.AggServices()
+//	//	//logger.Info("AggServices end running...")
+//	//	time.Sleep(500 *  time.Millisecond)
+//	//	//logger.Info("AggServices running Done")
+//	//}
+//	return aggregator
+//}
 
 //func MulticastRunner(addr string){
 //

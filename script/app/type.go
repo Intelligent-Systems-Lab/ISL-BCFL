@@ -9,6 +9,7 @@ type LBasemodel struct {
 	lbasemodel []ModelStructure
 }
 type ModelStructure struct {
+	from string
 	round uint64
 	b64model string
 }

@@ -15,7 +15,7 @@ mytestnet/
 .tendermint
 
 *_pb2*
-
+.idea/
 mnist/
 
 .DS*

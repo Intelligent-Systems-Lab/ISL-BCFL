@@ -66,21 +66,22 @@ func main()  {
 		ListBaseModel <- LBasemodel{
 			lbasemodel: []ModelStructure{},
 		}
+		return
+	}()
+	go func() {
 		ListIncomingModel <- LIncomingModel{
 			lincoming: []ModelStructure{},
 		}
-		//<-ListBaseModel
-		//<-ListIncomingModel
 		return
 	}()
+	//<-ListBaseModel
+	//<-ListIncomingModel
 
-	 <-ListBaseModel
-	//fmt.Println(m)
-	//
-	//time.Sleep(1 *  time.Second)
 
+	// Start Node Runner
 	//go NodeRunner(logger, configFile, &ListBaseModel)
 
+	// Start Agg Runner
 	logger.Info("Start AggRunner")
 	threshold := 4
 	addr := "localhost:62287"
@@ -123,45 +124,37 @@ func NodeRunner(logger log.Logger,configFile string, LB *chan LBasemodel){
 func AggRunner(logger log.Logger, addr string, LI *chan LIncomingModel, thhold uint32, LB *chan LBasemodel){
 	aggregator := NewAggregator(logger, addr, LI, LB, thhold)
 	aggregator.SetTmpPath("/tmp/model.txt")
-	go func() {
-		pre := <-*LI
-		aa:=append(pre.lincoming, ModelStructure{
-			round:    0,
-			b64model: "45",
-		})
-		*LI<- LIncomingModel{lincoming: aa}
-	}()
-	time.Sleep(2*time.Second)
 
-	logger.Info("AggServices running 1")
-	mm := GetIncomingChannel(*LI)
-	logger.Info("AggServices running 1")
-	msg:= mm.lincoming
-	logger.Info("AggServices running 1")
-	fmt.Println(msg)
+	// test
+	//AppendIncomingChannel(*LI, ModelStructure{
+	//	round:    0,
+	//	b64model: "45",
+	//})
+	//
+	//AppendBaseChannel(*LB, ModelStructure{
+	//	round:    0,
+	//	b64model: "87",
+	//})
+	//
+	//logger.Info("AggServices running 1")
+	//fmt.Println(GetIncomingChannel(*LI).lincoming)
+	//
+	//logger.Info("AggServices running 2")
+	//fmt.Println(GetBaseChannel(*LB).lbasemodel)
 
 
-	logger.Info("AggServices running 2")
-	mm2 := GetIncomingChannel(*LI)
-	logger.Info("AggServices running 2")
-	msg2:= mm2.lincoming
-	logger.Info("AggServices running 2")
-	fmt.Println(msg2)
-
-	logger.Info("AggServices running Done")
-	//for{
-	//	logger.Info("AggServices running...")
-	//	//aggregator.AggServices()
-	//	mm := <-*LI
-	//	msg:= mm.lincoming
-	//	fmt.Println(msg)
-	//	go func() {
-	//		*LI<-mm
-	//	}()
-	//	//logger.Info("AggServices end running...")
-	//	time.Sleep(1 *  time.Millisecond)
-	//	logger.Info("AggServices running Done")
-	//}
+	//logger.Info("AggServices running Done")
+	delayer := false
+	for{
+		delayer = !delayer
+		if delayer{
+			logger.Info("AggServices running...")
+		}
+		aggregator.AggServices()
+		//logger.Info("AggServices end running...")
+		time.Sleep(500 *  time.Millisecond)
+		//logger.Info("AggServices running Done")
+	}
 }
 
 //func MulticastRunner(addr string){
@@ -236,6 +229,24 @@ func  AppendIncomingChannel(GO chan LIncomingModel, m ModelStructure) LIncomingM
 	go func() {
 		GO<- LIncomingModel{
 			append(msg.lincoming,m),
+		}
+	}()
+	return msg
+}
+
+func  GetBaseChannel(GO chan LBasemodel) LBasemodel {
+	msg := <-GO
+	go func() {
+		GO<- msg
+	}()
+	return msg
+}
+
+func  AppendBaseChannel(GO chan LBasemodel, m ModelStructure) LBasemodel {
+	msg := <-GO
+	go func() {
+		GO<- LBasemodel{
+			append(msg.lbasemodel,m),
 		}
 	}()
 	return msg

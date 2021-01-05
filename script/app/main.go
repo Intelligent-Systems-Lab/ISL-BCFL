@@ -73,7 +73,7 @@ func main()  {
 	}()
 	go func() {
 		ListIncomingModel <- LIncomingModel{
-			lincoming: []ModelStructure{},
+			lincomingmodel: []ModelStructure{},
 		}
 		return
 	}()

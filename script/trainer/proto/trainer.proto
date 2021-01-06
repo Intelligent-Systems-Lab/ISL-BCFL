@@ -8,8 +8,8 @@ package pb;
 option go_package = "BCFL/trainer";
 //option go_package = "$GOPATH/github.com/BCFL/trainer";
 
-service Aggregator {
-  rpc Aggregate (TrainInfo) returns (TrainResult) {}
+service Trainer {
+  rpc Train (TrainInfo) returns (TrainResult) {}
 }
 
 
@@ -21,5 +21,5 @@ message TrainInfo {
 
 message TrainResult {
   int32 Round = 1;
-  string BaseModelResult = 2;
+  string Result = 2;
 }

@@ -15,6 +15,7 @@ type Trainerapplication struct {
 	Address string
 	LB *chan LBasemodel
 	LC *chan LBroadcastModel
+	con *grpc.ClientConn
 }
 
 
@@ -31,6 +32,7 @@ func (app *Trainerapplication)TrainerServices()  {
 	//flag.Parse()
 
 	conn, err := grpc.Dial(app.Address, grpc.WithInsecure())
+	app.con = conn
 	if err != nil {
 		app.logger.Error("Connection faild：%v", err)
 	}

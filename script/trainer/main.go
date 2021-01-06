@@ -26,7 +26,7 @@ func main()  {
 	defer conn.Close()
 
 	// 建立新的 Calculator 客戶端，所以等一下就能夠使用 Calculator 的所有方法。
-	c := trainer.NewAggregatorClient(conn)
+	c := trainer.NewTrainerClient(conn)
 
 	// 傳送新請求到遠端 gRPC 伺服器 Calculator 中，並呼叫 Plus 函式，讓兩個數字相加。
 	gotrain := &trainer.TrainInfo{
@@ -34,9 +34,9 @@ func main()  {
 		BaseModel: "1323",
 	}
 
-	r, err := c.Aggregate(context.Background(), gotrain)
+	r, err := c.Train(context.Background(), gotrain)
 	if err != nil {
 		log.Fatalf("無法執行 Plus 函式：%v", err)
 	}
-	log.Printf("回傳結果：%d", r.GetBaseModelResult())
+	log.Printf("回傳結果：%d", r.Result)
 }

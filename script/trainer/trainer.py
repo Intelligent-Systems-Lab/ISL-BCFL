@@ -27,22 +27,22 @@ def base642fullmodel(modbase64):
     return loadmodel
 
 
-class Aggregator(trainer_pb2_grpc.AggregatorServicer):
+class Trainer(trainer_pb2_grpc.TrainerServicer):
     def __init__(self, csvdata):
         self.dloader = getdataloader(csvdata)
         
-    def Aggregate(self, request, result):
+    def Train(self, request, result):
         #print(request.BaseModel)
         #print("training")
         result = trainOneEp(request.BaseModel, self.dloader)
-        return trainer_pb2.TrainResult(Round=1, BaseModelResult=result)
+        return trainer_pb2.TrainResult(Round=1, Result=result)
 
 
 def serve(data):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    trainer_pb2_grpc.add_AggregatorServicer_to_server(Aggregator(data), server)
+    trainer_pb2_grpc.add_TrainerServicer_to_server(Trainer(data), server)
 
-    server.add_insecure_port('localhost:62287')
+    server.add_insecure_port('0.0.0.0:62287')
     server.start()
     server.wait_for_termination()
 
@@ -74,7 +74,8 @@ def trainOneEp(bmodel, dloader):
     return bmodel_
 
     
-def getdataloader(dset = '/Users/tonyguo/Documents/github_project/ISL-BCFL/data/mnist/mnist_train_4.csv'):
+def getdataloader(dset = '/home/tedbest/Documents/mnist_train_0.csv'):
+    print(dset)
     train = pd.read_csv(dset)
     
     train_labels = train_df['label'].values 
@@ -93,7 +94,7 @@ def getdataloader(dset = '/Users/tonyguo/Documents/github_project/ISL-BCFL/data/
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data', type=str, default=None)
+    parser.add_argument('--data', type=str, default="/home/tedbest/Documents/mnist_train_0.csv")
     parser.add_argument('-f')
     args = parser.parse_args()
 

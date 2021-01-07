@@ -60,7 +60,7 @@ func main()  {
 	// https://ukiahsmith.com/blog/initializing-channels-in-go/
 	ListBaseModel := make(chan LBasemodel)
 	ListIncomingModel := make(chan LIncomingModel)
-	//ListBroadcastModel := make(chan LBroadcastModel)
+	ListBroadcastModel := make(chan LBroadcastModel)
 	//threadhold := 5
 	//data := dataFile
 
@@ -77,13 +77,23 @@ func main()  {
 		}
 		return
 	}()
+	go func() {
+		ListBroadcastModel <- LBroadcastModel{
+			lbroadcastmodel: []ModelStructure{},
+		}
+		return
+	}()
 	//<-ListBaseModel
 	//<-ListIncomingModel
 
 	addr := "localhost:62287"
 	aggapp := AggRunner(logger,addr,&ListIncomingModel,4, &ListBaseModel)
-
+	logger.Info("Node")
 	go NodeRunner(logger, configFile, &ListBaseModel, aggapp)
+
+	trainer := TrainerRunner(logger, addr, &ListBaseModel, &ListBroadcastModel)
+	logger.Info("train")
+	go trainer.TrainerServices()
 
 	//go func() {
 	//	addr := "localhost:62287"
@@ -128,6 +138,13 @@ func AggRunner(logger log.Logger, addr string, LI *chan LIncomingModel, thhold u
 	aggregator.SetTmpPath("/tmp/model.txt")
 
 	return aggregator
+}
+
+func TrainerRunner (logger log.Logger, addr string, Lb *chan LBasemodel, Lc *chan LBroadcastModel) *Trainerapplication {
+	trainer := NewTrainer(logger, addr, Lb, Lc)
+	trainer.Connect2Client()
+
+	return trainer
 }
 
 
@@ -214,6 +231,24 @@ func  AppendIncomingChannel(GO chan LIncomingModel, m ModelStructure) LIncomingM
 	go func() {
 		GO<- LIncomingModel{
 			append(msg.lincomingmodel,m),
+		}
+	}()
+	return msg
+}
+
+func  GetBroadcastChannel(GO chan LBroadcastModel) LBroadcastModel {
+	msg := <-GO
+	go func() {
+		GO<- msg
+	}()
+	return msg
+}
+
+func  AppendBroadcastChannel(GO chan LBroadcastModel, m ModelStructure) LBroadcastModel {
+	msg := <-GO
+	go func() {
+		GO<- LBroadcastModel{
+			append(msg.lbroadcastmodel,m),
 		}
 	}()
 	return msg

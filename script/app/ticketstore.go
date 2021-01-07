@@ -141,7 +141,7 @@ func (app *TicketStoreApplication) Commit() (resp types.ResponseCommit) {
 	//allClientsUpdate := true
 	//nextRound := app.state.round + 1
 
-	app.logger.Info("Commit by: "+ os.Getenv("ID"))
+	//app.logger.Info("Commit by: "+ os.Getenv("ID"))
 
 	//fmt.Printf("Update Status: \n")
 	//for i := 0 ; i < app.state.clientsNumber; i++ {
@@ -196,12 +196,12 @@ func (app *TicketStoreApplication) Query(reqQuery types.RequestQuery) types.Resp
 }
 
 func (app *TicketStoreApplication) EndBlock(req types.RequestEndBlock) types.ResponseEndBlock {
-	app.logger.Info("EndBlock by: "+ os.Getenv("ID"))
+	//app.logger.Info("EndBlock by: "+ os.Getenv("ID"))
 	return types.ResponseEndBlock{}
 }
 
 func (app *TicketStoreApplication) BeginBlock(req types.RequestBeginBlock) types.ResponseBeginBlock {
-	app.logger.Info("BeginBlock by: "+ os.Getenv("ID"))
+	//app.logger.Info("BeginBlock by: "+ os.Getenv("ID"))
 	return types.ResponseBeginBlock{}
 }
 

@@ -3,16 +3,21 @@ import torch.nn as nn
 from torchvision import transforms
 from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.sampler import SubsetRandomSampler
+from torch import optim
 import pandas as pd
 import sys
 sys.path.append('./proto')
 import trainer_pb2
 import trainer_pb2_grpc
-
+import time
 from concurrent import futures
 import logging
 import grpc
-import argparse  
+import argparse
+import base64
+import io
+
+torch.nn.Module.dump_patches = True
 
 def fullmodel2base64(model):
     buffer = io.BytesIO()
@@ -26,11 +31,24 @@ def base642fullmodel(modbase64):
     loadmodel = torch.load(io.BytesIO(inputrpc_))
     return loadmodel
 
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.hidden = nn.Linear(784, 20)
+        self.output = nn.Linear(20, 10)
+
+    def forward(self, x):
+        x = self.hidden(x)
+        x = torch.sigmoid(x)
+        x = self.output(x)
+        return x
+
+
 
 class Trainer(trainer_pb2_grpc.TrainerServicer):
     def __init__(self, csvdata):
         self.dloader = getdataloader(csvdata)
-        
+
     def Train(self, request, result):
         #print(request.BaseModel)
         #print("training")
@@ -38,47 +56,51 @@ class Trainer(trainer_pb2_grpc.TrainerServicer):
         return trainer_pb2.TrainResult(Round=1, Result=result)
 
 
-def serve(data):
+def serve(data, port):
+    print("Read dataset : ",data)
+    print("Port : ",port)
+    time.sleep(2)
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     trainer_pb2_grpc.add_TrainerServicer_to_server(Trainer(data), server)
 
-    server.add_insecure_port('0.0.0.0:62287')
+    server.add_insecure_port('0.0.0.0:'+port)
     server.start()
     server.wait_for_termination()
 
 def trainOneEp(bmodel, dloader):
+    #return bmodel
+    model = Model()
     model = base642fullmodel(bmodel)
-
+    #return fullmodel2base64(model)
+    print(model)
     loss_function = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay= 1e-6, momentum = 0.9, nesterov = True)
-    
+    optimizer = optim.SGD(model.parameters(), lr=0.005)
     model.train()
-    for data, target in dloader: 
+    for data, target in dloader:
 
         optimizer.zero_grad()
         data = data.view(data.size(0),-1)
 
-        output = model(data)
+        output = model(data.float())
 
         loss = loss_function(output, target)
 
-        loss.backward()              
+        loss.backward()
 
         optimizer.step()
-        train_loss.append(loss.item())
 
-    model.eval() 
-
+    #model.eval()
+    #print(model)
     bmodel_ = fullmodel2base64(model)
-
+    #print(bmodel_)
     return bmodel_
 
-    
+
 def getdataloader(dset = '/home/tedbest/Documents/mnist_train_0.csv'):
-    print(dset)
+    #print(dset)
     train = pd.read_csv(dset)
-    
-    train_labels = train_df['label'].values 
+
+    train_labels = train['label'].values
     train_data = train.drop(labels = ['label'], axis = 1)
     train_data = train_data.values.reshape(-1,28, 28)
 
@@ -95,8 +117,9 @@ def getdataloader(dset = '/home/tedbest/Documents/mnist_train_0.csv'):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', type=str, default="/home/tedbest/Documents/mnist_train_0.csv")
+    parser.add_argument('--port', type=str, default="63387")
     parser.add_argument('-f')
     args = parser.parse_args()
 
     logging.basicConfig()
-    serve(args.data)
+    serve(args.data, args.port)

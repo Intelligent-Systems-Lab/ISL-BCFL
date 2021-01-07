@@ -40,15 +40,22 @@ if [ "$MODE" = "node" ]
 then
     tendermint node --home $TMHOME --proxy_app "tcp://abci$ID:26658"
 else
+    cd 
+    #bash grpcsetup.sh
+    #cd ~/trainer
+    #make build_proto
     echo "run app"
-    mkdir -p $GOPATH/src/github.com/me/example
-    cp /root/app/* $GOPATH/src/github.com/me/example
-    cd $GOPATH/src/github.com/me/example
-    go mod init github.com/me/example
+    mkdir -p $GOPATH/src/github.com/isl/bcflapp/proto
+    cp  /root/app/* $GOPATH/src/github.com/isl/bcflapp
+    cp  /root/trainer/proto/*.pb.go $GOPATH/src/github.com/isl/bcflapp/proto
+    cd $GOPATH/src/github.com/isl/bcflapp
+    go mod init github.com/isl/bcflapp
     echo "Building..."
-    go build -o ticket main.go ticketstore.go type.go
+    rm $GOPATH/src/github.com/isl/bcflapp/proto/go*
+    go build -o ticket main.go ticketstore.go type.go aggregator.go trainer.go
+    # go build -o ticket ./...
     ./ticket -config /tendermint/mytestnet/node$ID
 fi
 
-TX=$(base64 tx.txt)
-curl --header "Content-Type: application/json" -X POST --data "{\"jsonrpc\":\"2.0\", \"method\": \"broadcast_tx_sync\", \"params\": [\"$TX\"], \"id\": 1}" localhost:26657
+# TX=$(base64 tx.txt)
+# curl --header "Content-Type: application/json" -X POST --data "{\"jsonrpc\":\"2.0\", \"method\": \"broadcast_tx_sync\", \"params\": [\"$TX\"], \"id\": 1}" localhost:26657

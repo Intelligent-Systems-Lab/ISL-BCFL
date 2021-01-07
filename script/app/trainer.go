@@ -6,12 +6,13 @@ import (
 	//"github.com/BCFL/trainer"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"strconv"
+
 	//"log"
 	"github.com/tendermint/tendermint/libs/log"
 	//"github.com/BCFL/trainer"
 	//"../trainer/BCFL/trainer"
 	pb "github.com/isl/bcflapp/proto"
-
 )
 
 
@@ -38,14 +39,14 @@ func NewTrainer(logger log.Logger, Address string, Lb *chan LBasemodel, Lc *chan
 }
 
 func (app *Trainerapplication ) Connect2Client()  {
-	app.logger.Info("Connect to client...")
+	app.logger.Info("Connect to client... "+app.Address)
 	conn, err := grpc.Dial(app.Address, grpc.WithInsecure())
 
 	if err != nil {
 		app.logger.Error("Connection faild：%v", err)
 		return
 	}
-	defer conn.Close()
+	//defer conn.Close()
 
 
 	c := pb.NewTrainerClient(conn)
@@ -55,7 +56,7 @@ func (app *Trainerapplication ) Connect2Client()  {
 }
 
 func (app *Trainerapplication)TrainerServices()  {
-
+	//app.logger.Info("Trainer alive")
 	LbaseCopy := GetBaseChannel(*app.LB).lbasemodel
 	//LBroadcastCopy := GetBroadcastChannel(*app.LC).lbroadcastmodel
 
@@ -66,24 +67,28 @@ func (app *Trainerapplication)TrainerServices()  {
 	if lastround != (app.lastround+1){
 		return
 	}
+	//app.logger.Info("You want training ?")
+	app.logger.Info("Training round : "+strconv.Itoa(int(LbaseCopy[lastround].round)))
+	//app.logger.Info(LbaseCopy[lastround].b64model)
+	//return
 
-	gotrain := &pb.TrainInfo{
+
+	r, err2 := app.client.Train(context.Background(), &pb.TrainInfo{
 		Round:     int32(LbaseCopy[lastround].round),
 		BaseModel: LbaseCopy[lastround].b64model,
-	}
-
-	r, err2 := app.client.Train(context.Background(), gotrain)
-
+	})
 	if err2 != nil {
-		app.logger.Error("Unable to run ：%v", err2)
+		app.logger.Error("Unable to run ：",err2)
+		return
 	}
 
 	AppendBroadcastChannel(*app.LC, ModelStructure{
 		//from:     os.Getenv("ID"),
-		from:     "",
-		round:    uint64(r.Round),
-		b64model: r.Result,
+		round:    uint64(r.GetRound()),
+		b64model: r.GetResult(),
 	})
+	app.lastround = lastround
 
-	app.logger.Info("Result Round：%d", r.Round)
+	app.logger.Info("Result Round："+ strconv.Itoa(int(r.Round)))
+
 }

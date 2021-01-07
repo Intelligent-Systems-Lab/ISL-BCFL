@@ -91,10 +91,17 @@ func main()  {
 	logger.Info("Node")
 	go NodeRunner(logger, configFile, &ListBaseModel, aggapp)
 
-	trainer := TrainerRunner(logger, addr, &ListBaseModel, &ListBroadcastModel)
-	logger.Info("train")
-	go trainer.TrainerServices()
 
+	trainer := NewTrainer(logger, "140.113.164.150:6228"+os.Getenv("ID"), &ListBaseModel, &ListBroadcastModel)
+	trainer.Connect2Client()
+	logger.Info("train")
+	go TrainerRunner(*trainer)
+
+
+	MAddress := "239.0.0.0:9999"
+	Multicaster := NewMulticaster(logger, MAddress, &ListIncomingModel, &ListBroadcastModel)
+	go Multicaster.BroadcastingServices()
+	go Multicaster.ListeningServices()
 	//go func() {
 	//	addr := "localhost:62287"
 	//	AggRunner(addr)
@@ -140,12 +147,19 @@ func AggRunner(logger log.Logger, addr string, LI *chan LIncomingModel, thhold u
 	return aggregator
 }
 
-func TrainerRunner (logger log.Logger, addr string, Lb *chan LBasemodel, Lc *chan LBroadcastModel) *Trainerapplication {
-	trainer := NewTrainer(logger, addr, Lb, Lc)
-	trainer.Connect2Client()
-
-	return trainer
+func TrainerRunner (trainer Trainerapplication){
+	for{
+		trainer.TrainerServices()
+		time.Sleep(400 * time.Millisecond)
+	}
 }
+
+//func MulticastRunner (addr string){
+//	for{
+//		trainer.TrainerServices()
+//		time.Sleep(400 * time.Millisecond)
+//	}
+//}
 
 
 func newTendermint(app abci.Application, configFile string) (*nm.Node, error) {
@@ -252,4 +266,13 @@ func  AppendBroadcastChannel(GO chan LBroadcastModel, m ModelStructure) LBroadca
 		}
 	}()
 	return msg
+}
+
+func  DeleteBroadcastChannel(GO chan LBroadcastModel)  {
+	msg := <-GO
+	go func() {
+		GO<- LBroadcastModel{
+			lbroadcastmodel:msg.lbroadcastmodel[1:],
+		}
+	}()
 }

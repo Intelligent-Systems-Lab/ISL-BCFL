@@ -36,7 +36,7 @@ type State struct {
 	aggregatedModel Model
 	historyModel map[uint64]Snapshot
 	height uint64
-	round  uint64
+	round  int64
 	clientsNumber int
 	rootHash []byte
 }
@@ -70,6 +70,7 @@ func NewTicketStoreApplication(logger log.Logger,ListBaseModel chan LBasemodel, 
 		state: State{ aggregatedModel: Model{ weight: "" },
 					  historyModel: make( map[uint64]Snapshot ),
 					  clientsNumber: 4,
+					  round: -1,
 					},
 		ListBaseModel : ListBaseModel,
 		logger : logger,
@@ -94,10 +95,14 @@ func (app *TicketStoreApplication) DeliverTx(tx types.RequestDeliverTx) types.Re
 	var modelTx ModelTx
 	err := json.Unmarshal(tx.Tx, &modelTx)
 
+	app.logger.Info("UN: "+ strconv.Itoa(int(modelTx.Round)))
+
 	if err != nil {
+		app.logger.Error(fmt.Sprint(err))
 		return types.ResponseDeliverTx{
 			Code: codeTypeEncodingError,
 			Log:  fmt.Sprint(err)}
+
 	}
 
 	//aaa := (<-app.ListBaseModel).lbasemodel
@@ -107,7 +112,7 @@ func (app *TicketStoreApplication) DeliverTx(tx types.RequestDeliverTx) types.Re
 		b64model: modelTx.Weight,
 	})
 
-	nextRound := app.state.round + 1
+	nextRound := uint64(app.state.round + 1)
 
 	if modelTx.Round != nextRound {
 		return types.ResponseDeliverTx{
@@ -190,6 +195,8 @@ func (app *TicketStoreApplication) Query(reqQuery types.RequestQuery) types.Resp
 		return types.ResponseQuery{Value: []byte(fmt.Sprint(app.state.clientsNumber))}
 	case "broadcast_state":
 		return types.ResponseQuery{Value: []byte(fmt.Sprint())}
+	case "bsemodel_state":
+		return types.ResponseQuery{Value: []byte(fmt.Sprint(GetBaseChannel(app.ListBaseModel).lbasemodel))}
 	default:
 		return types.ResponseQuery{Log: fmt.Sprintf("Invalid query path. Expected hash, tx or ticket, got %v", reqQuery.Path)}
 	}

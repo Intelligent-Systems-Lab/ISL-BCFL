@@ -36,14 +36,15 @@ fi
 
 export TMHOME="/tendermint/mytestnet/node$ID"
 
-if [ "$MODE" = "node" ]
+if [ "$MODE" = "trainer" ]
 then
     tendermint node --home $TMHOME --proxy_app "tcp://abci$ID:26658"
 else
     cd 
-    #bash grpcsetup.sh
-    #cd ~/trainer
-    #make build_proto
+    bash grpcsetup.sh
+    cd ~/trainer
+    make build_proto
+    cd ~
     echo "run app"
     mkdir -p $GOPATH/src/github.com/isl/bcflapp/proto
     cp  /root/app/* $GOPATH/src/github.com/isl/bcflapp
@@ -52,10 +53,13 @@ else
     go mod init github.com/isl/bcflapp
     echo "Building..."
     rm $GOPATH/src/github.com/isl/bcflapp/proto/go*
-    go build -o ticket main.go ticketstore.go type.go aggregator.go trainer.go
+    go build -o ticket main.go ticketstore.go type.go aggregator.go trainer.go ipmulticast.go
     # go build -o ticket ./...
     ./ticket -config /tendermint/mytestnet/node$ID
 fi
 
 # TX=$(base64 tx.txt)
 # curl --header "Content-Type: application/json" -X POST --data "{\"jsonrpc\":\"2.0\", \"method\": \"broadcast_tx_sync\", \"params\": [\"$TX\"], \"id\": 1}" localhost:26657
+# curl --header "Content-Type: application/json" -X POST --data '{"jsonrpc":"2.0", "method": "broadcast_tx_sync", "params": [$TX], "id": 1}' localhost:26657
+
+# {"round":0,"weight":,"cid":0}

@@ -62,7 +62,7 @@ def serve(port):
     print("Port : ",port)
     time.sleep(2)
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    trainer_pb2_grpc.add_TrainerServicer_to_server(Aggregator(), server)
+    aggregator_pb2.add_AggregatorServicer_to_server(Aggregator(), server)
 
     server.add_insecure_port('0.0.0.0:'+port)
     server.start()

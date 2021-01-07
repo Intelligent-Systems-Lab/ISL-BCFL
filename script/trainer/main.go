@@ -2,10 +2,12 @@ package main
 
 import (
 	"flag"
-	trainer "github.com/BCFL/trainer"
+	trainer "github.com/isl/bcflapp/proto"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"io/ioutil"
+
+	//"io/ioutil"
 	"log"
 )
 
@@ -13,7 +15,7 @@ import (
 var flagAddress string
 
 func init() {
-	flag.StringVar(&flagAddress, "grpcip", "140.113.164.150:63387", "address of grpc endpoint")
+	flag.StringVar(&flagAddress, "grpcip", "140.113.164.150:63380", "address of grpc endpoint")
 }
 
 func main()  {
@@ -23,7 +25,7 @@ func main()  {
 	conn, err := grpc.Dial(flagAddress, grpc.WithInsecure())
 	log.Printf("check")
 	if err != nil {
-		log.Fatalf("連線失敗：%v", err)
+		log.Fatalf("fail %v", err)
 		return
 	}
 	defer conn.Close()
@@ -34,11 +36,12 @@ func main()  {
 	log.Printf(flagAddress)
 
 	// 傳送新請求到遠端 gRPC 伺服器 Calculator 中，並呼叫 Plus 函式，讓兩個數字相加。
-	content, err := ioutil.ReadFile("/Users/tonyguo/Downloads/modelf.txt")
+	//content, err := ioutil.ReadFile("/root/trainer/modelf.txt")
+	content, err := ioutil.ReadFile("/Users/tonyguo/Documents/github/ISL-BCFL/script/trainer/modelf.txt")
 
-     if err != nil {
-          log.Fatal(err)
-     }
+    if err != nil {
+         log.Fatal(err)
+    }
 	mm:=string(content)
 
 	//log.Printf(mm)
@@ -54,17 +57,17 @@ func main()  {
 	//}
 
 
-	for i:=0; i < 5; i++ {
-		r, err2 := c.Train(context.Background(), &trainer.TrainInfo{
-			Round:     1,
-			BaseModel: mm,
-		})
-		if err2 != nil {
-			log.Fatalf("無法執行 函式：%v", err2)
-		}
 
-		mm=r.GetResult()
+	r, err2 := c.Train(context.Background(), &trainer.TrainInfo{
+		Round:     1,
+		BaseModel: mm,
+	})
+	if err2 != nil {
+		log.Fatalf("fail to run %v", err2)
 	}
+
+	mm = r.GetResult()
+
 
 	log.Printf(mm)
 }

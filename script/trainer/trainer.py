@@ -51,7 +51,7 @@ class Trainer(trainer_pb2_grpc.TrainerServicer):
 
     def Train(self, request, result):
         #print(request.BaseModel)
-        #print("training")
+        print("Training...")
         result = trainOneEp(request.BaseModel, self.dloader)
         return trainer_pb2.TrainResult(Round=1, Result=result)
 

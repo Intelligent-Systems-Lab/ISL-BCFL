@@ -9,7 +9,7 @@ build_proto:
 	#python3 -m grpc_tools.protoc -I . --python_out=. --grpc_python_out=. proto/trainer.proto
 	#protoc -I=${GOPATH}/src/github.com/ --go_out=. proto/trainer.proto
 	#
-	protoc --go-grpc_out=:. --go_out=:. proto/trainer.proto
+	protoc --go-grpc_out=:./proto --go_out=:./proto proto/trainer.proto
 	# mv BCFL ${GOPATH}/src/github.com
 	# cd ${GOPATH}/src/github.com/BCFL/trainer
 	# go mod init github.com/BCFL/trainer

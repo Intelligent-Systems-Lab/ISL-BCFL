@@ -1,11 +1,11 @@
 
 syntax = "proto3";
 
-package pb;
-
+package islpb;
 
 // If you want to get full package, enable this
-option go_package = "BCFL/trainer";
+//option go_package = "BCFL/trainer";
+option go_package = ".;trainer";
 //option go_package = "$GOPATH/github.com/BCFL/trainer";
 
 service Trainer {

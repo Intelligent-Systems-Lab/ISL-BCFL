@@ -108,8 +108,8 @@ func (app *TicketStoreApplication) DeliverTx(tx types.RequestDeliverTx) types.Re
 	//aaa := (<-app.ListBaseModel).lbasemodel
 
 	AppendBaseChannel(app.ListBaseModel, ModelStructure{
-		round: modelTx.Round,
-		b64model: modelTx.Weight,
+		Round: modelTx.Round,
+		B64model: modelTx.Weight,
 	})
 
 	nextRound := uint64(app.state.round + 1)
@@ -166,7 +166,7 @@ func (app *TicketStoreApplication) Commit() (resp types.ResponseCommit) {
 	if app.agg.AggServices()==true{
 		result := GetBaseChannel(app.ListBaseModel).lbasemodel
 		app.state.aggregatedModel = Model{
-			weight: result[len(result)].b64model,
+			weight: result[len(result)].B64model,
 		}
 		app.state.round++
 	}

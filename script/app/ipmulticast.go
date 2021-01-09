@@ -1,16 +1,23 @@
 package main
 
 import (
+	"golang.org/x/tools/go/ssa/interp/testdata/src/os"
+	"math"
 	"net"
+	"strconv"
+
 	//"log"
 	"time"
 
-	"encoding/json"
-
+	//"encoding/json"
+	"github.com/tendermint/tendermint/libs/json"
 	"github.com/dmichael/go-multicast/multicast"
 	"github.com/tendermint/tendermint/libs/log"
+	"crypto/md5"
 )
-
+// 65,535 bytes (8 byte header + 65,527 bytes of data) for a UDP datagram
+// set maxbytes to 64000 = 8000 chars
+const maxby = 8000
 
 type MulticastingServices struct {
 	logger log.Logger
@@ -39,10 +46,19 @@ func (s *MulticastingServices)BroadcastingServices() {
 	for {
 		lbr := (GetBroadcastChannel(*s.LBR)).lbroadcastmodel
 		if  len(lbr) >0 {
-			mod, _ := json.Marshal(lbr[0])
+
+			mms := ModelPackageDown(lbr[0])
+
+			for _,m := range mms {
+				mod, _ := json.Marshal(m)
+				conn.Write(mod)
+			}
+			//mod, _ := json.Marshal(lbr[0])
+			//
 			s.logger.Info("Broadcasting...")
-			conn.Write(mod)
+			//conn.Write(mod)
 			DeleteBroadcastChannel(*s.LBR)
+			s.logger.Info("Broadcasting done...")
 		}else{
 			continue
 		}
@@ -67,22 +83,65 @@ func (s *MulticastingServices)msgHandler(src *net.UDPAddr, n int, b []byte) {
 	if err != nil {
 		s.logger.Error(err.Error())
 	}
+	s.logger.Info("Get message : ")
+	s.logger.Info(strconv.Itoa(int(model.Round)))
+	s.logger.Info(model.B64model)
 	AppendIncomingChannel(*s.LI,ModelStructure{
-		from:     model.from,
-		round:    model.round,
-		b64model: model.b64model,
+		From:     model.From,
+		Round:    model.Round,
+		B64model: model.B64model,
 	})
 
 }
 
-//func (s *MulticastingServices)ping(addr string) {
-//	conn, err := multicast.NewBroadcaster(addr)
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-//
-//	for {
-//		conn.Write([]byte("hello, world\n"))
-//		time.Sleep(1 * time.Second)
-//	}
-//}
+func ModelPackageDown(mod ModelStructure) []MulticastModelStructure {
+	var mms []MulticastModelStructure
+
+	bymod := []byte(mod.B64model)
+	md5sum := md5.Sum([]byte(mod.B64model))
+
+	leng := math.Ceil(float64(len(bymod)) / float64(maxby))
+
+	for i := 1; i <= int(leng); i++ {
+		mms = append(mms, MulticastModelStructure{
+			From:         os.Getenv("ID"),
+			Round:        mod.Round,
+			PartB64model: string(bymod[:8000]),
+			Md5sum:       md5sum,
+			Total:        uint32(leng),
+			Index:        uint32(i),
+		})
+
+		if i != int(leng) {
+			bymod = bymod[8000:]
+		}
+	}
+	return mms
+}
+
+
+
+func ModelPackageUp(mms []MulticastModelStructure) ModelStructure {
+
+	leng:= mms
+	bymod := []byte(mod.B64model)
+	md5sum := md5.Sum([]byte(mod.B64model))
+
+	leng := math.Ceil(float64(len(bymod)) / float64(maxby))
+
+	for i := 1; i <= int(leng); i++ {
+		mms = append(mms, MulticastModelStructure{
+			From:         "",
+			Round:        mod.Round,
+			PartB64model: string(bymod[:8000]),
+			Md5sum:       md5sum,
+			Total:        uint32(leng),
+			Index:        uint32(i),
+		})
+
+		if i != int(leng) {
+			bymod = bymod[8000:]
+		}
+	}
+	return mms
+}

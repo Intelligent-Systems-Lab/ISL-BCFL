@@ -44,15 +44,19 @@ else
     bash grpcsetup.sh
     cd ~/trainer
     make build_proto
+    cd ~/aggregator
+    make build_proto
     cd ~
     echo "run app"
-    mkdir -p $GOPATH/src/github.com/isl/bcflapp/proto
-    cp  /root/app/* $GOPATH/src/github.com/isl/bcflapp
-    cp  /root/trainer/proto/*.pb.go $GOPATH/src/github.com/isl/bcflapp/proto
+    mkdir -p $GOPATH/src/github.com/isl/bcflapp/proto/{trainer,aggregator}
+    cp  /root/app/*.go $GOPATH/src/github.com/isl/bcflapp
+    cp  /root/trainer/proto/*.pb.go $GOPATH/src/github.com/isl/bcflapp/proto/trainer
+    cp  /root/aggregator/proto/*.pb.go $GOPATH/src/github.com/isl/bcflapp/proto/aggregator
     cd $GOPATH/src/github.com/isl/bcflapp
     go mod init github.com/isl/bcflapp
     echo "Building..."
-    rm $GOPATH/src/github.com/isl/bcflapp/proto/go*
+    rm $GOPATH/src/github.com/isl/bcflapp/proto/trainer/go*
+    rm $GOPATH/src/github.com/isl/bcflapp/proto/aggregator/go*
     go build -o ticket main.go ticketstore.go type.go aggregator.go trainer.go ipmulticast.go
     # go build -o ticket ./...
     ./ticket -config /tendermint/mytestnet/node$ID

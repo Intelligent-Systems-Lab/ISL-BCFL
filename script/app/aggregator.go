@@ -1,6 +1,7 @@
 package main
 
 import (
+	"google.golang.org/grpc"
 	//"log"
 	//"github.com/orktes/go-torch"
 	//"io"
@@ -8,24 +9,30 @@ import (
 	//"github.com/vmihailenco/msgpack"
 	//"io/ioutil"
 	"os"
-	"os/exec"
+	//"os/exec"
 	"fmt"
 	"github.com/tendermint/tendermint/libs/log"
+
+	pb "github.com/isl/bcflapp/proto/aggregator"
+	"golang.org/x/net/context"
+	"strconv"
 )
 
 type AggregatorApplication struct {
 	logger log.Logger
-	grpcip string
+	Address string
 	tmppath string
 	LI *chan LIncomingModel
 	LB *chan LBasemodel
 	threshold uint32
+
+	client  pb.AggregatorClient
 }
 
-func NewAggregator(logger log.Logger, Grpcip string, Li *chan LIncomingModel, Lb *chan LBasemodel, td uint32) *AggregatorApplication {
+func NewAggregator(logger log.Logger, addr string, Li *chan LIncomingModel, Lb *chan LBasemodel, td uint32) *AggregatorApplication {
 	return &AggregatorApplication{
 		logger: logger,
-		grpcip: Grpcip,
+		Address: addr,
 		LI: Li,
 		LB: Lb,
 		threshold: td,
@@ -36,11 +43,12 @@ func (app *AggregatorApplication) SetTmpPath(path string){
 	app.tmppath = path
 }
 
-func (app *AggregatorApplication) Aggregate(models []string) string{
+func (app *AggregatorApplication) Aggregate(models []string, nextround int) string{
 	blankWriter := ""
-
+	app.logger.Info("Aggregating models, len = "+strconv.Itoa(len(models)))
+	app.logger.Info(models[0])
 	for i, s := range models{
-		if i!=len(models){
+		if i!=len(models)-1{
 			blankWriter = blankWriter + s + ","
 		}
 		blankWriter = blankWriter+s
@@ -48,17 +56,45 @@ func (app *AggregatorApplication) Aggregate(models []string) string{
 
 	writers(blankWriter, app.tmppath)
 
-	out, err := exec.Command("python", "agg.py",app.tmppath).Output()
+	//out, err := exec.Command("python", "agg.py",app.tmppath).Output()
+	app.logger.Info("Aggregating...")
 
-	if err != nil {
-		panic(err)
+	r, err2 := app.client.Aggregate(context.Background(), &pb.AggInfo{
+		Round : int32(nextround),
+		Models : blankWriter,
+	})
+	if err2 != nil {
+		app.logger.Error("Unable to aggregate ："+err2.Error())
+		//return
 	}
+
+	//if err != nil {
+	//	panic(err)
+	//}
 	//fmt.Printf("%s", out)
 	fmt.Println("Aggregate done.")
-	return  string(out)
+	return  string(r.GetResult())
+}
+
+func (app *AggregatorApplication ) Connect2Client()  {
+	app.logger.Info("Agg connect to client... "+app.Address)
+	conn, err := grpc.Dial(app.Address, grpc.WithInsecure())
+
+	if err != nil {
+		app.logger.Error("Connection faild：%v", err)
+		return
+	}
+	//defer conn.Close()
+
+
+	c := pb.NewAggregatorClient(conn)
+
+	app.client = c
+	//app.logger.Info("Connect success.")
 }
 
 func (app *AggregatorApplication)AggServices() interface{}{
+	//app.logger.Info("AggServices...")
 
 	//copy//////////////////////////////
 	LincomingCopy := GetIncomingChannel(*app.LI).lincomingmodel
@@ -73,19 +109,24 @@ func (app *AggregatorApplication)AggServices() interface{}{
 	////////////////////////////////////
 
 	var filteredModel []ModelStructure
-	for _,m := range LincomingCopy {
-		if m.round == uint64(lastround) {
+	for i,m := range LincomingCopy {
+		if m.Round == uint64(lastround) {
 			filteredModel = append(filteredModel, m)
+			app.logger.Info("Appending : "+strconv.Itoa(i))
+			app.logger.Info("Appending round : "+strconv.Itoa(lastround))
+			app.logger.Info("Appending model : "+m.B64model)
 		}
 	}
+	app.logger.Info("Aggregating...")
 
 	var result string
 	if uint32(len(filteredModel)) >= app.threshold {
-		var filteredModels []string
+		var fModels []string
 		for _,m := range filteredModel{
-			filteredModels = append(filteredModels, m.b64model)
+			fModels = append(fModels, m.B64model)
 		}
-		result = app.Aggregate(filteredModels)
+		app.logger.Info("Aggregating..." + strconv.Itoa(int(filteredModel[0].Round)))
+		result = app.Aggregate(fModels, lastround+1)
 	}else{
 		return nil
 	}
@@ -93,10 +134,9 @@ func (app *AggregatorApplication)AggServices() interface{}{
 	//save//////////////////////////////
 	LBase_ := GetBaseChannel(*app.LB)
 	if Equal(LbaseCopy, LBase_.lbasemodel){
-		app.logger.Info("Aggregating...")
 		AppendBaseChannel(*app.LB, ModelStructure{
-			round: uint64(lastround+1),
-			b64model: result,
+			Round: uint64(lastround+1),
+			B64model: result,
 		})
 		return true
 	}else{

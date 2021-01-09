@@ -9,9 +9,18 @@ type LBasemodel struct {
 	lbasemodel []ModelStructure
 }
 type ModelStructure struct {
-	from string
-	round uint64
-	b64model string
+	From string  	`json:"from"`
+	Round uint64 	`json:"round"`
+	B64model string `json:"b64model"`
+}
+
+type MulticastModelStructure struct {
+	From string  	`json:"from"`
+	Round uint64 	`json:"round"`
+	PartB64model string `json:"partb64model"`
+	Md5sum [16]byte `json:"md5sum"`
+	Index uint32	`json:"length"`
+	Total uint32	`json:"length"`
 }
 
 ///////////////////////////////////////

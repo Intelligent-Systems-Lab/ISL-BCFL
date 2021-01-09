@@ -12,7 +12,7 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	//"github.com/BCFL/trainer"
 	//"../trainer/BCFL/trainer"
-	pb "github.com/isl/bcflapp/proto"
+	pb "github.com/isl/bcflapp/proto/trainer"
 )
 
 
@@ -39,7 +39,7 @@ func NewTrainer(logger log.Logger, Address string, Lb *chan LBasemodel, Lc *chan
 }
 
 func (app *Trainerapplication ) Connect2Client()  {
-	app.logger.Info("Connect to client... "+app.Address)
+	app.logger.Info("Trainer connect to client... "+app.Address)
 	conn, err := grpc.Dial(app.Address, grpc.WithInsecure())
 
 	if err != nil {
@@ -68,14 +68,14 @@ func (app *Trainerapplication)TrainerServices()  {
 		return
 	}
 	//app.logger.Info("You want training ?")
-	app.logger.Info("Training round : "+strconv.Itoa(int(LbaseCopy[lastround].round)))
+	app.logger.Info("Training round : "+strconv.Itoa(int(LbaseCopy[lastround].Round)))
 	//app.logger.Info(LbaseCopy[lastround].b64model)
 	//return
 
 
 	r, err2 := app.client.Train(context.Background(), &pb.TrainInfo{
-		Round:     int32(LbaseCopy[lastround].round),
-		BaseModel: LbaseCopy[lastround].b64model,
+		Round:     int32(LbaseCopy[lastround].Round),
+		BaseModel: LbaseCopy[lastround].B64model,
 	})
 	if err2 != nil {
 		app.logger.Error("Unable to run ：",err2)
@@ -84,11 +84,12 @@ func (app *Trainerapplication)TrainerServices()  {
 
 	AppendBroadcastChannel(*app.LC, ModelStructure{
 		//from:     os.Getenv("ID"),
-		round:    uint64(r.GetRound()),
-		b64model: r.GetResult(),
+		Round:    uint64(r.GetRound()),
+		B64model: r.GetResult(),
 	})
 	app.lastround = lastround
 
-	app.logger.Info("Result Round："+ strconv.Itoa(int(r.Round)))
+	//app.logger.Info("Result Round："+ strconv.Itoa(int(LbaseCopy[lastround].Round)))
+	//app.logger.Info("Result Round："+ strconv.Itoa(int(r.Round)))
 
 }

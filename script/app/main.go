@@ -86,8 +86,11 @@ func main()  {
 	//<-ListBaseModel
 	//<-ListIncomingModel
 
-	addr := "localhost:62287"
+	addr := "140.113.164.150:62287"
 	aggapp := AggRunner(logger,addr,&ListIncomingModel,4, &ListBaseModel)
+	aggapp.SetTmpPath("/root/aggmpdels_"+os.Getenv("ID")+".txt")
+	aggapp.Connect2Client()
+
 	logger.Info("Node")
 	go NodeRunner(logger, configFile, &ListBaseModel, aggapp)
 

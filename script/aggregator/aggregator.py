@@ -62,14 +62,17 @@ def serve(port):
     print("Port : ",port)
     time.sleep(2)
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    aggregator_pb2.add_AggregatorServicer_to_server(Aggregator(), server)
+    aggregator_pb2_grpc.add_AggregatorServicer_to_server(Aggregator(), server)
 
     server.add_insecure_port('0.0.0.0:'+port)
     server.start()
     server.wait_for_termination()
 
 def agg(models):
+    print("Len of models : ",len(models))
+    model_list = []
     for m in models:
+        print("Append great?")
         model_list.append(base642fullmodel(m))
 
     new_model_state = model_list[0].state_dict()

@@ -1,6 +1,6 @@
 FROM golang:1.14.4-alpine
 
-RUN apk add --no-cache git make bash gcc musl-dev
+RUN apk add --no-cache git make bash gcc musl-dev jq
 
 RUN mkdir /installiipfs &&\
     cd /installiipfs &&\

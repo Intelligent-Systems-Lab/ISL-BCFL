@@ -1,6 +1,28 @@
 version: '3'
 
 services:
+  ipfsA:
+    image: tony92151/ipfs-alpine
+    container_name: ipfsA
+    ports:
+      - 4001:4001
+      - 5001:5001
+    environment:
+      #LIBP2P_FORCE_PNET: "true"
+      HOSTIP: 172.168.10.10
+      IPFS_PATH: /root/ipfs
+      
+    volumes: # default path : /data/ipfs/swarm.key
+      # - ./ipfskey:/data/ipfs/ 
+      - ./ipfs:/root
+      # - ipfscon:/ipfscon
+    entrypoint: /bin/bash
+    command: /root/ipfsentrypoint.sh
+    networks:
+      localnet:
+        ipv4_address: 172.168.10.10
+
+##################################################
   node0:
     image: tony92151/tendermint-docker
     container_name: node0
@@ -18,20 +40,6 @@ services:
       localnet:
         ipv4_address: 172.168.10.2
 
-  # abci0:
-  #   container_name: abci0
-  #   image: tony92151/tendermint-docker
-  #   environment:
-  #     - MODE=app
-  #     - ID=0
-  #   volumes:
-  #     - ./script:/root
-  #     - ./nodes:/tendermint
-  #   entrypoint: /bin/bash
-  #   command: /root/entrypoint.sh
-  #   networks:
-  #     localnet:
-  #       ipv4_address: 172.168.10.6
 ##################################################
   node1:
     image: tony92151/tendermint-docker
@@ -50,20 +58,6 @@ services:
       localnet:
         ipv4_address: 172.168.10.3
 
-  # abci1:
-  #   container_name: abci1
-  #   image: tony92151/tendermint-docker
-  #   environment:
-  #     - MODE=app
-  #     - ID=1
-  #   volumes:
-  #     - ./script:/root
-  #     - ./nodes:/tendermint
-  #   entrypoint: /bin/bash
-  #   command: /root/entrypoint.sh
-  #   networks:
-  #     localnet:
-  #       ipv4_address: 172.168.10.7
 ##################################################
   node2:
     image: tony92151/tendermint-docker
@@ -82,20 +76,6 @@ services:
       localnet:
         ipv4_address: 172.168.10.4
 
-  # abci2:
-  #   container_name: abci2
-  #   image: tony92151/tendermint-docker
-  #   environment:
-  #     - MODE=app
-  #     - ID=2
-  #   volumes:
-  #     - ./script:/root
-  #     - ./nodes:/tendermint
-  #   entrypoint: /bin/bash
-  #   command: /root/entrypoint.sh
-  #   networks:
-  #     localnet:
-  #       ipv4_address: 172.168.10.8
 ##################################################
   node3:
     image: tony92151/tendermint-docker
@@ -114,22 +94,8 @@ services:
       localnet:
         ipv4_address: 172.168.10.5
 
-  # abci3:
-  #   container_name: abci3
-  #   image: tony92151/tendermint-docker
-  #   environment:
-  #     - MODE=app
-  #     - ID=3
-  #   volumes:
-  #     - ./script:/root
-  #     - ./nodes:/tendermint
-  #   entrypoint: /bin/bash
-  #   command: /root/entrypoint.sh
-  #   networks:
-  #     localnet:
-  #       ipv4_address: 172.168.10.9
-
-
+# volumes:
+#     ipfscon:
 
 networks:
   localnet:
@@ -138,5 +104,5 @@ networks:
       #driver: default
       config:
       -
-        subnet: 172.168.10.0/16
+        subnet: 172.168.10.0/24
         #gateway: 172.168.10.1

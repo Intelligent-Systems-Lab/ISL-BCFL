@@ -3,12 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/libs/log"
 	_ "log"
 	"os"
 	"strconv"
-
-	"github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/log"
 )
 
 const (
@@ -163,10 +162,11 @@ func (app *TicketStoreApplication) Commit() (resp types.ResponseCommit) {
 	//}
 
 	//modelsNextRound := app.state.historyModel[nextRound].localModels
-	if app.agg.AggServices()==true{
+	if app.agg.AggServices()==true || len(GetBaseChannel(app.ListBaseModel).lbasemodel)==1{ // manual TX won't pass this, but it need to be record
+		//time.Sleep(10*time.Millisecond)
 		result := GetBaseChannel(app.ListBaseModel).lbasemodel
 		app.state.aggregatedModel = Model{
-			weight: result[len(result)].B64model,
+			weight: result[len(result)-1].B64model,
 		}
 		app.state.round++
 	}

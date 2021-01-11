@@ -1,4 +1,5 @@
 #!/bin/bash
+sleep 8
 
 echo "  ___ ___ _      _      _   ___  "
 echo " |_ _/ __| |    | |    /_\ | _ ) "
@@ -57,7 +58,7 @@ else
     echo "Building..."
     rm $GOPATH/src/github.com/isl/bcflapp/proto/trainer/go*
     rm $GOPATH/src/github.com/isl/bcflapp/proto/aggregator/go*
-    go build -o ticket main.go ticketstore.go type.go aggregator.go trainer.go ipmulticast.go
+    go build -o ticket main.go ticketstore.go type.go aggregator.go trainer.go ipmulticast.go ipfs.go
     # go build -o ticket ./...
     ./ticket -config /tendermint/mytestnet/node$ID
 fi

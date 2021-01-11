@@ -18,12 +18,13 @@ echo 'Removing default bootstrap nodes...'
 ipfs bootstrap rm --all
 
 #apk add jq
+ipfs id
 PEERID=$(ipfs id | jq ."ID")
 PEERID="${PEERID:1}"
 PEERID="${PEERID::-1}"
 
 if [ ! -f "/ipfscon/ipfsaddr.txt" ]; then
-    # mkdir /ipfscon
+    mkdir /ipfscon
     touch /ipfscon/ipfsaddr.txt
 fi
 #rm /ipfscon/ipfsaddr.txt

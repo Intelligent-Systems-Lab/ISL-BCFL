@@ -46,7 +46,7 @@ func (app *AggregatorApplication) SetTmpPath(path string){
 func (app *AggregatorApplication) Aggregate(models []string, nextround int) string{
 	blankWriter := ""
 	app.logger.Info("Aggregating models, len = "+strconv.Itoa(len(models)))
-	app.logger.Info(models[0])
+	//app.logger.Info(models[0])
 	for i, s := range models{
 		if i!=len(models)-1{
 			blankWriter = blankWriter + s + ","
@@ -99,6 +99,7 @@ func (app *AggregatorApplication)AggServices() interface{}{
 	//copy//////////////////////////////
 	LincomingCopy := GetIncomingChannel(*app.LI).lincomingmodel
 	LbaseCopy := GetBaseChannel(*app.LB).lbasemodel
+	app.logger.Info("pass0 "+strconv.Itoa(len(LincomingCopy)))
 
 	// [round 0, round 1, round 2, round 3, round 4]
 	//										len()=5
@@ -108,32 +109,45 @@ func (app *AggregatorApplication)AggServices() interface{}{
 	}
 	////////////////////////////////////
 
+	app.logger.Info("pass1 "+ strconv.Itoa(lastround))
+	var backModel []ModelStructure
 	var filteredModel []ModelStructure
-	for i,m := range LincomingCopy {
+	for _,m := range LincomingCopy {
 		if m.Round == uint64(lastround) {
 			filteredModel = append(filteredModel, m)
-			app.logger.Info("Appending : "+strconv.Itoa(i))
+			//app.logger.Info("Appending : "+strconv.Itoa(i))
 			app.logger.Info("Appending round : "+strconv.Itoa(lastround))
-			app.logger.Info("Appending model : "+m.B64model)
+			//app.logger.Info("Appending model : "+m.B64model)
+
+		}else {
+			backModel = append(backModel, m)
 		}
 	}
-	app.logger.Info("Aggregating...")
+	//app.logger.Info("pass2")
+
+	//app.logger.Info("Aggregating...")
 
 	var result string
 	if uint32(len(filteredModel)) >= app.threshold {
+		app.logger.Info("Aggregating...")
 		var fModels []string
 		for _,m := range filteredModel{
 			fModels = append(fModels, m.B64model)
 		}
 		app.logger.Info("Aggregating..." + strconv.Itoa(int(filteredModel[0].Round)))
 		result = app.Aggregate(fModels, lastround+1)
+		app.logger.Info("pass3")
+		//SetIncomingChannel(*app.LI, backModel)
 	}else{
+		app.logger.Info("Waiting for threshold...")
 		return nil
 	}
+	app.logger.Info("pass4")
 
 	//save//////////////////////////////
 	LBase_ := GetBaseChannel(*app.LB)
 	if Equal(LbaseCopy, LBase_.lbasemodel){
+		app.logger.Info("Add new base model...")
 		AppendBaseChannel(*app.LB, ModelStructure{
 			Round: uint64(lastround+1),
 			B64model: result,

@@ -18,6 +18,8 @@ mytestnet/
 .idea/
 mnist/
 
+*.data
+
 .DS*
 # Distribution / packaging
 .Python

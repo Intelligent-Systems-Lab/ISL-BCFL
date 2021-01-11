@@ -101,8 +101,11 @@ func main()  {
 	go TrainerRunner(*trainer)
 
 
+	IpfsApp := NewIpfs(logger,"172.168.10.10:5001")
+	IpfsApp.InitIpfs()
+
 	MAddress := "239.0.0.0:9999"
-	Multicaster := NewMulticaster(logger, MAddress, &ListIncomingModel, &ListBroadcastModel)
+	Multicaster := NewMulticaster(logger, MAddress, &ListIncomingModel, &ListBroadcastModel, IpfsApp)
 	go Multicaster.BroadcastingServices()
 	go Multicaster.ListeningServices()
 	//go func() {
@@ -251,6 +254,14 @@ func  AppendIncomingChannel(GO chan LIncomingModel, m ModelStructure) LIncomingM
 		}
 	}()
 	return msg
+}
+
+func  SetIncomingChannel(GO chan LIncomingModel, m []ModelStructure) {
+	go func() {
+		GO<- LIncomingModel{
+			m,
+		}
+	}()
 }
 
 func  GetBroadcastChannel(GO chan LBroadcastModel) LBroadcastModel {

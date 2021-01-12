@@ -55,7 +55,7 @@ class Aggregator(aggregator_pb2_grpc.AggregatorServicer):
         models = request.Models.split(",")
         result = agg(models)
 
-        return aggregator_pb2.AggResult(Round=1, Result=result)
+        return aggregator_pb2.AggResult(Round=request.Round, Result=result)
 
 
 def serve(port):

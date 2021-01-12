@@ -53,7 +53,7 @@ class Trainer(trainer_pb2_grpc.TrainerServicer):
         #print(request.BaseModel)
         print("Training...")
         result = trainOneEp(request.BaseModel, self.dloader)
-        return trainer_pb2.TrainResult(Round=1, Result=result)
+        return trainer_pb2.TrainResult(Round=request.Round, Result=result)
 
 
 def serve(data, port):

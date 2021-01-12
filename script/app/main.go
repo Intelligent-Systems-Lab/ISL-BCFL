@@ -68,6 +68,7 @@ func main()  {
 	go func() {
 		ListBaseModel <- LBasemodel{
 			lbasemodel: []ModelStructure{},
+			MaxRound :	100,
 		}
 		return
 	}()
@@ -232,7 +233,8 @@ func  AppendBaseChannel(GO chan LBasemodel, m ModelStructure) LBasemodel {
 	msg := <-GO
 	go func() {
 		GO<- LBasemodel{
-			append(msg.lbasemodel,m),
+			lbasemodel: append(msg.lbasemodel,m),
+			MaxRound :	msg.MaxRound,
 		}
 	}()
 	return msg

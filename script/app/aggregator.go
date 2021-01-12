@@ -27,6 +27,7 @@ type AggregatorApplication struct {
 	threshold uint32
 
 	client  pb.AggregatorClient
+	saveallmodel bool
 }
 
 func NewAggregator(logger log.Logger, addr string, Li *chan LIncomingModel, Lb *chan LBasemodel, td uint32) *AggregatorApplication {
@@ -36,6 +37,7 @@ func NewAggregator(logger log.Logger, addr string, Li *chan LIncomingModel, Lb *
 		LI: Li,
 		LB: Lb,
 		threshold: td,
+		saveallmodel :true,
 	}
 }
 
@@ -98,13 +100,31 @@ func (app *AggregatorApplication)AggServices() interface{}{
 
 	//copy//////////////////////////////
 	LincomingCopy := GetIncomingChannel(*app.LI).lincomingmodel
-	LbaseCopy := GetBaseChannel(*app.LB).lbasemodel
+	Lb := GetBaseChannel(*app.LB)
+	LbaseCopy := Lb.lbasemodel
 	app.logger.Info("pass0 "+strconv.Itoa(len(LincomingCopy)))
 
 	// [round 0, round 1, round 2, round 3, round 4]
 	//										len()=5
 	lastround := len(LbaseCopy)-1 // if lastround=-1, pass anything.
 	if lastround == -1{
+		return nil
+	}
+
+	if lastround == int(Lb.MaxRound){ //
+		if app.saveallmodel{
+			savestring :=""
+			for i,m :=  range LbaseCopy {
+				if i == len(LbaseCopy)-1{
+					savestring = savestring+m.B64model
+				}else{
+					savestring = savestring+m.B64model+","
+				}
+			}
+			app.logger.Info("Save 100 round models...")
+			writers(savestring, "/root/100_round_model_id_"+os.Getenv("ID")+".txt")
+		}
+		app.saveallmodel = false
 		return nil
 	}
 	////////////////////////////////////

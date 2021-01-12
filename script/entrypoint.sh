@@ -41,8 +41,6 @@ if [ "$MODE" = "trainer" ]
 then
     tendermint node --home $TMHOME --proxy_app "tcp://abci$ID:26658"
 else
-    cd 
-    bash grpcsetup.sh
     cd ~/trainer
     make build_proto
     cd ~/aggregator

@@ -86,7 +86,7 @@ func main()  {
 	//<-ListBaseModel
 	//<-ListIncomingModel
 
-	addr := "140.113.164.150:62287"
+	addr := "172.168.10.100:62287"
 	aggapp := AggRunner(logger,addr,&ListIncomingModel,4, &ListBaseModel)
 	aggapp.SetTmpPath("/root/aggmpdels_"+os.Getenv("ID")+".txt")
 	aggapp.Connect2Client()
@@ -95,7 +95,7 @@ func main()  {
 	go NodeRunner(logger, configFile, &ListBaseModel, aggapp)
 
 
-	trainer := NewTrainer(logger, "140.113.164.150:6228"+os.Getenv("ID"), &ListBaseModel, &ListBroadcastModel)
+	trainer := NewTrainer(logger, "172.168.10.5"+os.Getenv("ID")+":62281", &ListBaseModel, &ListBroadcastModel)
 	trainer.Connect2Client()
 	logger.Info("train")
 	go TrainerRunner(*trainer)

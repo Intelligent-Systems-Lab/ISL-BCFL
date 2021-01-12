@@ -1,5 +1,17 @@
 version: '3'
 
+# ip map:
+#   ipfsA     --> 172.168.10.10
+#   node0     --> 172.168.10.2
+#   node1     --> 172.168.10.3
+#   node2     --> 172.168.10.4
+#   node3     --> 172.168.10.5
+#   trainer0  --> 172.168.10.50
+#   trainer1  --> 172.168.10.51
+#   trainer2  --> 172.168.10.52
+#   trainer3  --> 172.168.10.53
+#   agg       --> 172.168.10.100
+#
 services:
   ipfsA:
     image: tony92151/ipfs-alpine
@@ -23,6 +35,7 @@ services:
         ipv4_address: 172.168.10.10
 
 ##################################################
+##################################################
   node0:
     image: tony92151/tendermint-docker
     container_name: node0
@@ -40,6 +53,22 @@ services:
       localnet:
         ipv4_address: 172.168.10.2
 
+  trainer0:
+    image: tony92151/isltrainer
+    container_name: trainer0
+    environment:
+      - MODE=trainer
+      - ID=0
+    volumes:
+      - ./script/trainer:/root
+      - ./data:/mountdata
+    entrypoint: /bin/bash
+    command: /root/trainerentrypoint.sh
+    networks:
+      localnet:
+        ipv4_address: 172.168.10.50
+
+##################################################
 ##################################################
   node1:
     image: tony92151/tendermint-docker
@@ -58,6 +87,22 @@ services:
       localnet:
         ipv4_address: 172.168.10.3
 
+  trainer1:
+    image: tony92151/isltrainer
+    container_name: trainer1
+    environment:
+      - MODE=trainer
+      - ID=1
+    volumes:
+      - ./script/trainer:/root
+      - ./data:/mountdata
+    entrypoint: /bin/bash
+    command: /root/trainerentrypoint.sh
+    networks:
+      localnet:
+        ipv4_address: 172.168.10.51
+
+##################################################
 ##################################################
   node2:
     image: tony92151/tendermint-docker
@@ -76,6 +121,22 @@ services:
       localnet:
         ipv4_address: 172.168.10.4
 
+  trainer2:
+    image: tony92151/isltrainer
+    container_name: trainer2
+    environment:
+      - MODE=trainer
+      - ID=2
+    volumes:
+      - ./script/trainer:/root
+      - ./data:/mountdata
+    entrypoint: /bin/bash
+    command: /root/trainerentrypoint.sh
+    networks:
+      localnet:
+        ipv4_address: 172.168.10.52
+
+##################################################
 ##################################################
   node3:
     image: tony92151/tendermint-docker
@@ -93,6 +154,38 @@ services:
     networks:
       localnet:
         ipv4_address: 172.168.10.5
+
+  trainer3:
+    image: tony92151/isltrainer
+    container_name: trainer3
+    environment:
+      - MODE=trainer
+      - ID=3
+    volumes:
+      - ./script/trainer:/root
+      - ./data:/mountdata
+    entrypoint: /bin/bash
+    command: /root/trainerentrypoint.sh
+    networks:
+      localnet:
+        ipv4_address: 172.168.10.53
+
+##################################################
+  agg:
+    image: tony92151/isltrainer
+    container_name: agg
+    environment:
+      - MODE=agg
+      - ID=0
+    volumes:
+      - ./script/aggregator:/root
+    entrypoint: /bin/bash
+    command: /root/aggregatorentrypoint.sh
+    networks:
+      localnet:
+        ipv4_address: 172.168.10.100
+
+##################################################
 
 # volumes:
 #     ipfscon:

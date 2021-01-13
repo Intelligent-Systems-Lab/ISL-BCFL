@@ -28,9 +28,11 @@ type AggregatorApplication struct {
 
 	client  pb.AggregatorClient
 	saveallmodel bool
+
+	ipfsapp *IpfsApplication
 }
 
-func NewAggregator(logger log.Logger, addr string, Li *chan LIncomingModel, Lb *chan LBasemodel, td uint32) *AggregatorApplication {
+func NewAggregator(logger log.Logger, addr string, Li *chan LIncomingModel, Lb *chan LBasemodel, td uint32, ipfs *IpfsApplication) *AggregatorApplication {
 	return &AggregatorApplication{
 		logger: logger,
 		Address: addr,
@@ -38,6 +40,7 @@ func NewAggregator(logger log.Logger, addr string, Li *chan LIncomingModel, Lb *
 		LB: Lb,
 		threshold: td,
 		saveallmodel :true,
+		ipfsapp : ipfs,
 	}
 }
 
@@ -51,9 +54,9 @@ func (app *AggregatorApplication) Aggregate(models []string, nextround int) stri
 	//app.logger.Info(models[0])
 	for i, s := range models{
 		if i!=len(models)-1{
-			blankWriter = blankWriter + s + ","
+			blankWriter = blankWriter + app.ipfsapp.CatIpfs(s) + ","
 		}
-		blankWriter = blankWriter+s
+		blankWriter = blankWriter + app.ipfsapp.CatIpfs(s)
 	}
 
 	writers(blankWriter, app.tmppath)
@@ -116,9 +119,9 @@ func (app *AggregatorApplication)AggServices() interface{}{
 			savestring :=""
 			for i,m :=  range LbaseCopy {
 				if i == len(LbaseCopy)-1{
-					savestring = savestring+m.B64model
+					savestring = savestring + app.ipfsapp.CatIpfs(m.B64model)
 				}else{
-					savestring = savestring+m.B64model+","
+					savestring = savestring + app.ipfsapp.CatIpfs(m.B64model)+","
 				}
 			}
 			app.logger.Info("Save 100 round models...")

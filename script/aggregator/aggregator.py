@@ -31,19 +31,46 @@ def base642fullmodel(modbase64):
     loadmodel = torch.load(io.BytesIO(inputrpc_))
     return loadmodel
 
+# class Model(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+#         self.hidden = nn.Linear(784, 20)
+#         self.output = nn.Linear(20, 10)
+
+#     def forward(self, x):
+#         x = self.hidden(x)
+#         x = torch.sigmoid(x)
+#         x = self.output(x)
+#         return x
+
 class Model(nn.Module):
     def __init__(self):
         super().__init__()
-        self.hidden = nn.Linear(784, 20)
-        self.output = nn.Linear(20, 10)
+        
+        self.cnn = nn.Sequential(nn.Conv2d(in_channels=1, out_channels=32, kernel_size=5),
+                                     nn.ReLU(inplace=True),
+                                     nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5),
+                                     nn.ReLU(inplace=True),
+                                     nn.MaxPool2d(kernel_size=2),
+                                     nn.Dropout(0.25),
+                                     nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3),
+                                     nn.ReLU(inplace=True),
+                                     nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3),
+                                     nn.ReLU(inplace=True),
+                                     nn.MaxPool2d(kernel_size=2, stride=2),
+                                     nn.Dropout(0.25))
+        
+        self.classifier = nn.Sequential(nn.Linear(576, 256),
+                                       nn.Dropout(0.5),
+                                       nn.Linear(256, 10))
 
+        
     def forward(self, x):
-        x = self.hidden(x)
-        x = torch.sigmoid(x)
-        x = self.output(x)
+        x = self.cnn(x)
+        x = x.view(x.size(0), -1) # flatten layer
+        x = self.classifier(x)
+        
         return x
-
-
 
 class Aggregator(aggregator_pb2_grpc.AggregatorServicer):
     # def __init__(self, csvdata):
@@ -72,7 +99,7 @@ def agg(models):
     print("Len of models : ",len(models))
     model_list = []
     for m in models:
-        print("Append great?")
+        #print("Append great?")
         model_list.append(base642fullmodel(m))
 
     new_model_state = model_list[0].state_dict()

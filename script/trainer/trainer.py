@@ -42,9 +42,9 @@ def base642fullmodel(modbase64):
 #         x = torch.sigmoid(x)
 #         x = self.output(x)
 #         return x
-class CNNModel(nn.Module):
+class Model(nn.Module):
     def __init__(self):
-        super(CNNModel, self).__init__()
+        super().__init__()
         
         self.cnn = nn.Sequential(nn.Conv2d(in_channels=1, out_channels=32, kernel_size=5),
                                      nn.ReLU(inplace=True),
@@ -110,7 +110,7 @@ def trainOneEp(bmodel, dloader):
     for data, target in dloader:
 
         optimizer.zero_grad()
-        data = data.view(data.size(0),-1)
+        #data = data.view(data.size(0),-1)
 
         output = model(data.float())
 

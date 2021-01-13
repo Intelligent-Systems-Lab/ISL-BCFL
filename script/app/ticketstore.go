@@ -109,7 +109,7 @@ func (app *TicketStoreApplication) DeliverTx(tx types.RequestDeliverTx) types.Re
 	}
 
 	//aaa := (<-app.ListBaseModel).lbasemodel
-	app.logger.Info(app.ipfsapp.CatIpfs(modelTx.Weight))
+	//app.logger.Info(app.ipfsapp.CatIpfs(modelTx.Weight))
 
 	AppendBaseChannel(app.ListBaseModel, ModelStructure{
 		Round: modelTx.Round,

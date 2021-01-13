@@ -29,6 +29,8 @@ type TicketStoreApplication struct {
 	lastRound int64
 
 	agg *AggregatorApplication
+
+	ipfsapp *IpfsApplication
 }
 
 type State struct {
@@ -63,7 +65,7 @@ type ModelTx struct {
 	Signature 	string 	`json:"signature"`
 }
 
-func NewTicketStoreApplication(logger log.Logger,ListBaseModel chan LBasemodel, agg *AggregatorApplication) *TicketStoreApplication {
+func NewTicketStoreApplication(logger log.Logger,ListBaseModel chan LBasemodel, agg *AggregatorApplication, ipfs *IpfsApplication) *TicketStoreApplication {
 
 	return &TicketStoreApplication{
 		state: State{ aggregatedModel: Model{ weight: "" },
@@ -74,6 +76,8 @@ func NewTicketStoreApplication(logger log.Logger,ListBaseModel chan LBasemodel, 
 		ListBaseModel : ListBaseModel,
 		logger : logger,
 		agg: agg,
+
+		ipfsapp :ipfs,
 		}
 }
 
@@ -108,7 +112,7 @@ func (app *TicketStoreApplication) DeliverTx(tx types.RequestDeliverTx) types.Re
 
 	AppendBaseChannel(app.ListBaseModel, ModelStructure{
 		Round: modelTx.Round,
-		B64model: modelTx.Weight,
+		B64model: app.ipfsapp.CatIpfs(modelTx.Weight),
 	})
 
 	nextRound := uint64(app.state.round + 1)

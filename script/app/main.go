@@ -87,13 +87,16 @@ func main()  {
 	//<-ListBaseModel
 	//<-ListIncomingModel
 
+	IpfsApp := NewIpfs(logger,"172.168.10.10:5001")
+	IpfsApp.InitIpfs()
+
 	addr := "172.168.10.100:62287"
 	aggapp := AggRunner(logger,addr,&ListIncomingModel,4, &ListBaseModel)
 	aggapp.SetTmpPath("/root/aggmpdels_"+os.Getenv("ID")+".txt")
 	aggapp.Connect2Client()
 
 	logger.Info("Node")
-	go NodeRunner(logger, configFile, &ListBaseModel, aggapp)
+	go NodeRunner(logger, configFile, &ListBaseModel, aggapp, IpfsApp)
 
 
 	trainer := NewTrainer(logger, "172.168.10.5"+os.Getenv("ID")+":62281", &ListBaseModel, &ListBroadcastModel)
@@ -102,8 +105,6 @@ func main()  {
 	go TrainerRunner(*trainer)
 
 
-	IpfsApp := NewIpfs(logger,"172.168.10.10:5001")
-	IpfsApp.InitIpfs()
 
 	MAddress := "239.0.0.0:9999"
 	Multicaster := NewMulticaster(logger, MAddress, &ListIncomingModel, &ListBroadcastModel, IpfsApp)
@@ -125,8 +126,8 @@ func main()  {
 	os.Exit(0)
 }
 
-func NodeRunner(logger log.Logger,cfile string, ListBaseModel *chan LBasemodel,agg *AggregatorApplication){
-	app := NewTicketStoreApplication(logger, *ListBaseModel, agg)
+func NodeRunner(logger log.Logger,cfile string, ListBaseModel *chan LBasemodel,agg *AggregatorApplication, ipfs *IpfsApplication){
+	app := NewTicketStoreApplication(logger, *ListBaseModel, agg, ipfs)
 	node, err := newTendermint(app, cfile)
 
 	if err != nil {

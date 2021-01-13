@@ -78,7 +78,7 @@ func (app *Trainerapplication)TrainerServices()  {
 
 	r, err2 := app.client.Train(context.Background(), &pb.TrainInfo{
 		Round:     int32(LbaseCopy[lastround].Round),
-		BaseModel: app.ipfsapp.CatIpfs(LbaseCopy[lastround].B64model),
+		BaseModel: LbaseCopy[lastround].B64model,
 	})
 	if err2 != nil {
 		app.logger.Error("Unable to run ：",err2)

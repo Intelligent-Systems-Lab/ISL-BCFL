@@ -54,9 +54,9 @@ func (app *AggregatorApplication) Aggregate(models []string, nextround int) stri
 	//app.logger.Info(models[0])
 	for i, s := range models{
 		if i!=len(models)-1{
-			blankWriter = blankWriter + app.ipfsapp.CatIpfs(s) + ","
+			blankWriter = blankWriter +s + ","
 		}
-		blankWriter = blankWriter + app.ipfsapp.CatIpfs(s)
+		blankWriter = blankWriter + s
 	}
 
 	writers(blankWriter, app.tmppath)
@@ -119,9 +119,9 @@ func (app *AggregatorApplication)AggServices() interface{}{
 			savestring :=""
 			for i,m :=  range LbaseCopy {
 				if i == len(LbaseCopy)-1{
-					savestring = savestring + app.ipfsapp.CatIpfs(m.B64model)
+					savestring = savestring + m.B64model
 				}else{
-					savestring = savestring + app.ipfsapp.CatIpfs(m.B64model)+","
+					savestring = savestring + m.B64model+","
 				}
 			}
 			app.logger.Info("Save 100 round models...")

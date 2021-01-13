@@ -89,9 +89,6 @@ func main()  {
 	IpfsApp := NewIpfs(logger,"172.168.10.10:5001")
 	IpfsApp.InitIpfs()
 
-	IpfsApp := NewIpfs(logger,"172.168.10.10:5001")
-	IpfsApp.InitIpfs()
-
 	addr := "172.168.10.100:62287"
 	aggapp := AggRunner(logger,addr,&ListIncomingModel,4, &ListBaseModel, IpfsApp)
 	aggapp.SetTmpPath("/root/aggmpdels_"+os.Getenv("ID")+".txt")

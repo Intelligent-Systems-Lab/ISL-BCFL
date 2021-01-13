@@ -86,9 +86,11 @@ func main()  {
 	}()
 	//<-ListBaseModel
 	//<-ListIncomingModel
+	IpfsApp := NewIpfs(logger,"172.168.10.10:5001")
+	IpfsApp.InitIpfs()
 
 	addr := "172.168.10.100:62287"
-	aggapp := AggRunner(logger,addr,&ListIncomingModel,4, &ListBaseModel)
+	aggapp := AggRunner(logger,addr,&ListIncomingModel,4, &ListBaseModel, IpfsApp)
 	aggapp.SetTmpPath("/root/aggmpdels_"+os.Getenv("ID")+".txt")
 	aggapp.Connect2Client()
 
@@ -96,14 +98,10 @@ func main()  {
 	go NodeRunner(logger, configFile, &ListBaseModel, aggapp)
 
 
-	trainer := NewTrainer(logger, "172.168.10.5"+os.Getenv("ID")+":62281", &ListBaseModel, &ListBroadcastModel)
+	trainer := NewTrainer(logger, "172.168.10.5"+os.Getenv("ID")+":62281", &ListBaseModel, &ListBroadcastModel, IpfsApp)
 	trainer.Connect2Client()
 	logger.Info("train")
 	go TrainerRunner(*trainer)
-
-
-	IpfsApp := NewIpfs(logger,"172.168.10.10:5001")
-	IpfsApp.InitIpfs()
 
 	MAddress := "239.0.0.0:9999"
 	Multicaster := NewMulticaster(logger, MAddress, &ListIncomingModel, &ListBroadcastModel, IpfsApp)
@@ -147,8 +145,8 @@ func NodeRunner(logger log.Logger,cfile string, ListBaseModel *chan LBasemodel,a
 	os.Exit(0)
 }
 
-func AggRunner(logger log.Logger, addr string, LI *chan LIncomingModel, thhold uint32, LB *chan LBasemodel) *AggregatorApplication {
-	aggregator := NewAggregator(logger, addr, LI, LB, thhold)
+func AggRunner(logger log.Logger, addr string, LI *chan LIncomingModel, thhold uint32, LB *chan LBasemodel, ipfs *IpfsApplication) *AggregatorApplication {
+	aggregator := NewAggregator(logger, addr, LI, LB, thhold,ipfs)
 	aggregator.SetTmpPath("/tmp/model.txt")
 
 	return aggregator

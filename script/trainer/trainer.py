@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torchvision import transforms
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset, Dataset
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch import optim
 import pandas as pd

@@ -42,9 +42,9 @@ def base642fullmodel(modbase64):
 #         x = torch.sigmoid(x)
 #         x = self.output(x)
 #         return x
-class Model(nn.Module):
+class CNNModel(nn.Module):
     def __init__(self):
-        super().__init__()
+        super(CNNModel, self).__init__()
         
         self.cnn = nn.Sequential(nn.Conv2d(in_channels=1, out_channels=32, kernel_size=5),
                                      nn.ReLU(inplace=True),

@@ -84,7 +84,7 @@ class Aggregator(aggregator_pb2_grpc.AggregatorServicer):
 
         models = []
         for hm in models:
-            models.append(self.client.cat(hm))
+            models.append(self.client.cat(hm).decode())
 
         result = agg(models)
 

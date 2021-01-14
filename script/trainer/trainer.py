@@ -82,7 +82,7 @@ class Trainer(trainer_pb2_grpc.TrainerServicer):
     def Train(self, request, result):
         #print(request.BaseModel)
         print("Training...")
-        result = trainOneEp(self.client.cat(request.BaseModel), self.dloader)
+        result = trainOneEp(self.client.cat(request.BaseModel).decode(), self.dloader)
         hashresult = self.client.add_str(result)
         return trainer_pb2.TrainResult(Round=request.Round, Result=hashresult)
 

@@ -75,11 +75,11 @@ class Model(nn.Module):
 
 class Aggregator(aggregator_pb2_grpc.AggregatorServicer):
     def __init__(self):
-        while:
+        while True:
             try:
                 self.client = ipfshttpclient.connect("/ip4/172.168.10.10/tcp/5001/http")
                 break
-            except expression as identifier:
+            except:
                 print("Waiting for ipfs services at : 172.168.10.10:5001")
                 time.sleep(1)
 
@@ -88,11 +88,13 @@ class Aggregator(aggregator_pb2_grpc.AggregatorServicer):
 
         models = request.Models.split(",")
 
-        models = []
+        realmodels = []
         for hm in models:
-            models.append(self.client.cat(hm).decode())
+            print("Agg Download...")
+            mod = self.client.cat(hm).decode()
+            realmodels.append(mod)
 
-        result = agg(models)
+        result = agg(realmodels)
 
         hashresult = self.client.add_str(result)
 

@@ -77,11 +77,11 @@ class Model(nn.Module):
 class Trainer(trainer_pb2_grpc.TrainerServicer):
     def __init__(self, csvdata):
         self.dloader = getdataloader(csvdata)
-        while:
+        while True:
             try:
                 self.client = ipfshttpclient.connect("/ip4/172.168.10.10/tcp/5001/http")
                 break
-            except expression as identifier:
+            except:
                 print("Waiting for ipfs services at : 172.168.10.10:5001")
                 time.sleep(1)
 

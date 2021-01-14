@@ -16,6 +16,7 @@ import grpc
 import argparse
 import base64
 import io
+import ipfshttpclient
 
 torch.nn.Module.dump_patches = True
 
@@ -76,12 +77,14 @@ class Model(nn.Module):
 class Trainer(trainer_pb2_grpc.TrainerServicer):
     def __init__(self, csvdata):
         self.dloader = getdataloader(csvdata)
+        self.client = ipfshttpclient.connect("/ip4/172.168.10.10/tcp/5001/http")
 
     def Train(self, request, result):
         #print(request.BaseModel)
         print("Training...")
-        result = trainOneEp(request.BaseModel, self.dloader)
-        return trainer_pb2.TrainResult(Round=request.Round, Result=result)
+        result = trainOneEp(self.client.cat(request.BaseModel), self.dloader)
+        hashresult = self.client.add_str(result)
+        return trainer_pb2.TrainResult(Round=request.Round, Result=hashresult)
 
 
 def serve(data, port):

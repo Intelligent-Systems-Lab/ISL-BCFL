@@ -15,7 +15,8 @@ RUN apt-get update && apt-get -y upgrade &&\
     pip3 install protobuf &&\
     pip3 install grpcio &&\
     pip3 install grpcio-tools &&\
-    pip3 install pandas
+    pip3 install pandas &&\
+    pip3 install ipfshttpclient==0.7.0a1
 
 RUN wget https://download.pytorch.org/whl/cu100/torch-1.2.0-cp36-cp36m-manylinux1_x86_64.whl &&\
     pip install torch-1.2.0-cp36-cp36m-manylinux1_x86_64.whl &&\

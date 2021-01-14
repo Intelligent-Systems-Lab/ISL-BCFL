@@ -46,7 +46,7 @@ func (s *MulticastingServices)BroadcastingServices() {
 	for {
 		lbr := (GetBroadcastChannel(*s.LBR)).lbroadcastmodel
 		if  len(lbr) >0 {
-			lbr[0].B64model = s.ipfsapp.AddIpfs(string(lbr[0].B64model))
+			//lbr[0].B64model = s.ipfsapp.AddIpfs(string(lbr[0].B64model))
 
 			mod, _ := json.Marshal(lbr[0])
 
@@ -85,7 +85,8 @@ func (s *MulticastingServices)msgHandler(src *net.UDPAddr, n int, b []byte) {
 	AppendIncomingChannel(*s.LI,ModelStructure{
 		From:     model.From,
 		Round:    model.Round,
-		B64model: s.ipfsapp.CatIpfs(model.B64model),
+		//B64model: s.ipfsapp.CatIpfs(model.B64model),
+		B64model: model.B64model,
 	})
 
 	s.logger.Info("Append multi round : "+strconv.Itoa(int(model.Round))+", len = "+strconv.Itoa(len(GetIncomingChannel(*s.LI).lincomingmodel)))

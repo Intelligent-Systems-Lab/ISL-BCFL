@@ -16,6 +16,7 @@ import grpc
 import argparse
 import base64
 import io
+import ipfshttpclient
 
 torch.nn.Module.dump_patches = True
 
@@ -73,16 +74,23 @@ class Model(nn.Module):
         return x
 
 class Aggregator(aggregator_pb2_grpc.AggregatorServicer):
-    # def __init__(self, csvdata):
-    #     self.dloader = getdataloader(csvdata)
+    def __init__(self):
+        self.client = ipfshttpclient.connect("/ip4/172.168.10.10/tcp/5001/http")
 
     def aggregate(self, request, result):
         print("Training...")
 
         models = request.Models.split(",")
+
+        models = []
+        for hm in models:
+            models.append(self.client.cat(hm))
+
         result = agg(models)
 
-        return aggregator_pb2.AggResult(Round=request.Round, Result=result)
+        hashresult = self.client.add_str(result)
+
+        return aggregator_pb2.AggResult(Round=request.Round, Result=hashresult)
 
 
 def serve(port):

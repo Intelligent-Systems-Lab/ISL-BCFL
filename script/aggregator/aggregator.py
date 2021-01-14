@@ -75,7 +75,13 @@ class Model(nn.Module):
 
 class Aggregator(aggregator_pb2_grpc.AggregatorServicer):
     def __init__(self):
-        self.client = ipfshttpclient.connect("/ip4/172.168.10.10/tcp/5001/http")
+        while:
+            try:
+                self.client = ipfshttpclient.connect("/ip4/172.168.10.10/tcp/5001/http")
+                break
+            except expression as identifier:
+                print("Waiting for ipfs services at : 172.168.10.10:5001")
+                time.sleep(1)
 
     def aggregate(self, request, result):
         print("Training...")

@@ -17,6 +17,7 @@ mytestnet/
 *_pb2*
 .idea/
 mnist/
+emnist/
 
 *.data
 

@@ -18,38 +18,40 @@ const (
 )
 
 var (
-	ErrBadRound       = "The round number is not match"
-	ErrConflict       = "The model round number has been used"
+	ErrBadRound = "The round number is not match"
+	ErrConflict = "The model round number has been used"
 )
 
 type TicketStoreApplication struct {
 	logger log.Logger
 	types.BaseApplication
-	state State
+	state         State
 	ListBaseModel chan LBasemodel
-	lastRound int64
+	lastRound     int64
 
 	agg *AggregatorApplication
+
+	ipfsapp *IpfsApplication
 }
 
 type State struct {
 	aggregatedModel Model
-	historyModel map[uint64]Snapshot
-	height uint64
-	round  int64
-	clientsNumber int
-	rootHash []byte
+	historyModel    map[uint64]Snapshot
+	height          uint64
+	round           int64
+	clientsNumber   int
+	rootHash        []byte
 }
 
 type Model struct {
-	Name string
+	Name   string
 	weight string
 }
 
 type Snapshot struct {
-	ready bool
+	ready       bool
 	localModels map[uint64]Model
-	update map[uint64]bool
+	update      map[uint64]bool
 }
 
 //type queryformat struct {
@@ -58,24 +60,26 @@ type Snapshot struct {
 //}
 
 type ModelTx struct {
-	Round		uint64	`json:"round"`
-	Weight		string `json:"weight"`
-	CID			uint64 	`json:"cid"`
-	Signature 	string 	`json:"signature"`
+	Round     uint64 `json:"round"`
+	Weight    string `json:"weight"`
+	CID       uint64 `json:"cid"`
+	Signature string `json:"signature"`
 }
 
-func NewTicketStoreApplication(logger log.Logger,ListBaseModel chan LBasemodel, agg *AggregatorApplication) *TicketStoreApplication {
+func NewTicketStoreApplication(logger log.Logger, ListBaseModel chan LBasemodel, agg *AggregatorApplication, ipfs *IpfsApplication) *TicketStoreApplication {
 
 	return &TicketStoreApplication{
-		state: State{ aggregatedModel: Model{ weight: "" },
-					  historyModel: make( map[uint64]Snapshot ),
-					  clientsNumber: 4,
-					  round: -1,
-					},
-		ListBaseModel : ListBaseModel,
-		logger : logger,
-		agg: agg,
-		}
+		state: State{aggregatedModel: Model{weight: ""},
+			historyModel:  make(map[uint64]Snapshot),
+			clientsNumber: 4,
+			round:         -1,
+		},
+		ListBaseModel: ListBaseModel,
+		logger:        logger,
+		agg:           agg,
+
+		ipfsapp: ipfs,
+	}
 }
 
 func (app *TicketStoreApplication) Info(req types.RequestInfo) types.ResponseInfo {
@@ -91,11 +95,11 @@ func (app *TicketStoreApplication) Info(req types.RequestInfo) types.ResponseInf
 }
 
 func (app *TicketStoreApplication) DeliverTx(tx types.RequestDeliverTx) types.ResponseDeliverTx {
-	app.logger.Info("DeliverTx by: "+ os.Getenv("ID"))
+	app.logger.Info("DeliverTx by: " + os.Getenv("ID"))
 	var modelTx ModelTx
 	err := json.Unmarshal(tx.Tx, &modelTx)
 
-	app.logger.Info("UN: "+ strconv.Itoa(int(modelTx.Round)))
+	app.logger.Info("UN: " + strconv.Itoa(int(modelTx.Round)))
 
 	if err != nil {
 		app.logger.Error(fmt.Sprint(err))
@@ -106,9 +110,11 @@ func (app *TicketStoreApplication) DeliverTx(tx types.RequestDeliverTx) types.Re
 	}
 
 	//aaa := (<-app.ListBaseModel).lbasemodel
+	//app.logger.Info(app.ipfsapp.CatIpfs(modelTx.Weight))
 
 	AppendBaseChannel(app.ListBaseModel, ModelStructure{
 		Round: modelTx.Round,
+		//B64model: app.ipfsapp.CatIpfs(modelTx.Weight),
 		B64model: modelTx.Weight,
 	})
 
@@ -117,23 +123,23 @@ func (app *TicketStoreApplication) DeliverTx(tx types.RequestDeliverTx) types.Re
 	if modelTx.Round != nextRound {
 		return types.ResponseDeliverTx{
 			Code: codeTypeModelError,
-			Log: fmt.Sprint(ErrBadRound)}
+			Log:  fmt.Sprint(ErrBadRound)}
 	}
 
 	cid := modelTx.CID
 	if app.state.historyModel[nextRound].ready == false {
 		// fmt.Printf("initial struct")
-		app.state.historyModel[nextRound] = Snapshot{ ready: true,
-													  localModels: make( map[uint64]Model ),
-													  update: make( map[uint64]bool )}
+		app.state.historyModel[nextRound] = Snapshot{ready: true,
+			localModels: make(map[uint64]Model),
+			update:      make(map[uint64]bool)}
 	}
 	if app.state.historyModel[nextRound].update[cid] {
 		return types.ResponseDeliverTx{
 			Code: codeTypeModelError,
-			Log: fmt.Sprint(ErrConflict)}
+			Log:  fmt.Sprint(ErrConflict)}
 	}
 	app.state.historyModel[nextRound].update[cid] = true
-	app.state.historyModel[nextRound].localModels[cid] = Model{Name: "model_"+strconv.Itoa(int(modelTx.Round)),weight: modelTx.Weight}
+	app.state.historyModel[nextRound].localModels[cid] = Model{Name: "model_" + strconv.Itoa(int(modelTx.Round)), weight: modelTx.Weight}
 	return types.ResponseDeliverTx{Code: codeTypeOK}
 }
 
@@ -163,10 +169,11 @@ func (app *TicketStoreApplication) Commit() (resp types.ResponseCommit) {
 	//}
 
 	//modelsNextRound := app.state.historyModel[nextRound].localModels
-	if app.agg.AggServices()==true{
+	if app.agg.AggServices() == true || len(GetBaseChannel(app.ListBaseModel).lbasemodel) == 1 { // manual TX won't pass this, but it need to be record
+		//time.Sleep(10*time.Millisecond)
 		result := GetBaseChannel(app.ListBaseModel).lbasemodel
 		app.state.aggregatedModel = Model{
-			weight: result[len(result)].B64model,
+			weight: result[len(result)-1].B64model,
 		}
 		app.state.round++
 	}

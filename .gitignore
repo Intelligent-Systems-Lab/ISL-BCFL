@@ -18,6 +18,8 @@ mytestnet/
 .idea/
 mnist/
 
+*.data
+
 .DS*
 # Distribution / packaging
 .Python
@@ -57,6 +59,7 @@ htmlcov/
 .coverage
 .coverage.*
 .cache
+.local
 nosetests.xml
 coverage.xml
 *.cover

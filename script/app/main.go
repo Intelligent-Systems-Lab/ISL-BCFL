@@ -28,14 +28,11 @@ import (
 	"github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
-
 	//_ trainer "github.com/BCFL/trainer"
-
 )
 
 //var flagAddress string
 //var flagAbci string
-
 
 var configFile string
 var dataFile string
@@ -43,12 +40,12 @@ var dataFile string
 func init() {
 	//flag.StringVar(&flagAddress, "address", "tcp://0.0.0.0:26658", "address of application socket")
 	//flag.StringVar(&flagAbci, "abci", "socket", "either socket or grpc")
-	
+
 	flag.StringVar(&configFile, "config", os.Getenv("HOME")+"/.tendermint/config/config.toml", "Path to config.toml")
 	flag.StringVar(&dataFile, "data", "", "Path to csv dataset")
 }
 
-func main()  {
+func main() {
 	flag.Parse()
 	configFile = configFile + "/config/config.toml"
 	fmt.Println("Reading from : " + configFile)
@@ -68,6 +65,7 @@ func main()  {
 	go func() {
 		ListBaseModel <- LBasemodel{
 			lbasemodel: []ModelStructure{},
+			MaxRound:   100,
 		}
 		return
 	}()
@@ -85,24 +83,24 @@ func main()  {
 	}()
 	//<-ListBaseModel
 	//<-ListIncomingModel
+	IpfsApp := NewIpfs(logger, "172.168.10.10:5001")
+	IpfsApp.InitIpfs()
 
-	addr := "140.113.164.150:62287"
-	aggapp := AggRunner(logger,addr,&ListIncomingModel,4, &ListBaseModel)
-	aggapp.SetTmpPath("/root/aggmpdels_"+os.Getenv("ID")+".txt")
+	addr := "172.168.10.100:62287"
+	aggapp := AggRunner(logger, addr, &ListIncomingModel, 4, &ListBaseModel, IpfsApp)
+	aggapp.SetTmpPath("/root/aggmpdels_" + os.Getenv("ID") + ".txt")
 	aggapp.Connect2Client()
 
 	logger.Info("Node")
-	go NodeRunner(logger, configFile, &ListBaseModel, aggapp)
+	go NodeRunner(logger, configFile, &ListBaseModel, aggapp, IpfsApp)
 
-
-	trainer := NewTrainer(logger, "140.113.164.150:6228"+os.Getenv("ID"), &ListBaseModel, &ListBroadcastModel)
+	trainer := NewTrainer(logger, "172.168.10.5"+os.Getenv("ID")+":62281", &ListBaseModel, &ListBroadcastModel, IpfsApp)
 	trainer.Connect2Client()
 	logger.Info("train")
 	go TrainerRunner(*trainer)
 
-
 	MAddress := "239.0.0.0:9999"
-	Multicaster := NewMulticaster(logger, MAddress, &ListIncomingModel, &ListBroadcastModel)
+	Multicaster := NewMulticaster(logger, MAddress, &ListIncomingModel, &ListBroadcastModel, IpfsApp)
 	go Multicaster.BroadcastingServices()
 	go Multicaster.ListeningServices()
 	//go func() {
@@ -111,18 +109,17 @@ func main()  {
 	//}()
 	//logger.Info("dfsdf")
 
-
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c  // wait for get Signal
+	<-c // wait for get Signal
 	//message<- "Done"
 
 	//wg.Wait()
 	os.Exit(0)
 }
 
-func NodeRunner(logger log.Logger,cfile string, ListBaseModel *chan LBasemodel,agg *AggregatorApplication){
-	app := NewTicketStoreApplication(logger, *ListBaseModel, agg)
+func NodeRunner(logger log.Logger, cfile string, ListBaseModel *chan LBasemodel, agg *AggregatorApplication, ipfs *IpfsApplication) {
+	app := NewTicketStoreApplication(logger, *ListBaseModel, agg, ipfs)
 	node, err := newTendermint(app, cfile)
 
 	if err != nil {
@@ -143,15 +140,15 @@ func NodeRunner(logger log.Logger,cfile string, ListBaseModel *chan LBasemodel,a
 	os.Exit(0)
 }
 
-func AggRunner(logger log.Logger, addr string, LI *chan LIncomingModel, thhold uint32, LB *chan LBasemodel) *AggregatorApplication {
-	aggregator := NewAggregator(logger, addr, LI, LB, thhold)
+func AggRunner(logger log.Logger, addr string, LI *chan LIncomingModel, thhold uint32, LB *chan LBasemodel, ipfs *IpfsApplication) *AggregatorApplication {
+	aggregator := NewAggregator(logger, addr, LI, LB, thhold, ipfs)
 	aggregator.SetTmpPath("/tmp/model.txt")
 
 	return aggregator
 }
 
-func TrainerRunner (trainer Trainerapplication){
-	for{
+func TrainerRunner(trainer Trainerapplication) {
+	for {
 		trainer.TrainerServices()
 		time.Sleep(400 * time.Millisecond)
 	}
@@ -163,7 +160,6 @@ func TrainerRunner (trainer Trainerapplication){
 //		time.Sleep(400 * time.Millisecond)
 //	}
 //}
-
 
 func newTendermint(app abci.Application, configFile string) (*nm.Node, error) {
 	// read config
@@ -217,65 +213,83 @@ func newTendermint(app abci.Application, configFile string) (*nm.Node, error) {
 	return node, nil
 }
 
-func  GetBaseChannel(GO chan LBasemodel) LBasemodel {
+func GetBaseChannel(GO chan LBasemodel) LBasemodel {
 	msg := <-GO
 	go func() {
-		GO<- msg
+		GO <- msg
 	}()
 	return msg
 }
 
-func  AppendBaseChannel(GO chan LBasemodel, m ModelStructure) LBasemodel {
+func AppendBaseChannel(GO chan LBasemodel, m ModelStructure) LBasemodel {
+	if len(m.B64model) > 48 {
+		panic("Error(AppendBase): try to add wrong model type in ModelStructure, should be hash number from ipfs (48).")
+	}
 	msg := <-GO
 	go func() {
-		GO<- LBasemodel{
-			append(msg.lbasemodel,m),
+		GO <- LBasemodel{
+			lbasemodel: append(msg.lbasemodel, m),
+			MaxRound:   msg.MaxRound,
 		}
 	}()
 	return msg
 }
 
-func  GetIncomingChannel(GO chan LIncomingModel) LIncomingModel {
+func GetIncomingChannel(GO chan LIncomingModel) LIncomingModel {
 	msg := <-GO
 	go func() {
-		GO<- msg
+		GO <- msg
 	}()
 	return msg
 }
 
-func  AppendIncomingChannel(GO chan LIncomingModel, m ModelStructure) LIncomingModel {
+func AppendIncomingChannel(GO chan LIncomingModel, m ModelStructure) LIncomingModel {
+	if len(m.B64model) > 48 {
+		panic("Error(AppendIncoming): try to add wrong model type in ModelStructure, should be hash number from ipfs (48).")
+	}
 	msg := <-GO
 	go func() {
-		GO<- LIncomingModel{
-			append(msg.lincomingmodel,m),
+		GO <- LIncomingModel{
+			append(msg.lincomingmodel, m),
 		}
 	}()
 	return msg
 }
 
-func  GetBroadcastChannel(GO chan LBroadcastModel) LBroadcastModel {
+func SetIncomingChannel(GO chan LIncomingModel, m []ModelStructure) {
+	go func() {
+		GO <- LIncomingModel{
+			m,
+		}
+	}()
+}
+
+func GetBroadcastChannel(GO chan LBroadcastModel) LBroadcastModel {
 	msg := <-GO
 	go func() {
-		GO<- msg
+		GO <- msg
 	}()
 	return msg
 }
 
-func  AppendBroadcastChannel(GO chan LBroadcastModel, m ModelStructure) LBroadcastModel {
+func AppendBroadcastChannel(GO chan LBroadcastModel, m ModelStructure) LBroadcastModel {
+	if len(m.B64model) > 48 {
+		panic("Error(AppendBroadcast): try to add wrong model type in ModelStructure, should be hash number from ipfs (48).")
+	}
 	msg := <-GO
 	go func() {
-		GO<- LBroadcastModel{
-			append(msg.lbroadcastmodel,m),
+		GO <- LBroadcastModel{
+			append(msg.lbroadcastmodel, m),
 		}
 	}()
 	return msg
 }
 
-func  DeleteBroadcastChannel(GO chan LBroadcastModel)  {
+func DeleteBroadcastChannel(GO chan LBroadcastModel) {
 	msg := <-GO
 	go func() {
-		GO<- LBroadcastModel{
-			lbroadcastmodel:msg.lbroadcastmodel[1:],
+		GO <- LBroadcastModel{
+			lbroadcastmodel: msg.lbroadcastmodel[1:],
 		}
 	}()
 }

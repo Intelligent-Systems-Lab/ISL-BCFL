@@ -7,6 +7,7 @@ package main
 
 type LBasemodel struct {
 	lbasemodel []ModelStructure
+	MaxRound uint32
 }
 type ModelStructure struct {
 	From string  	`json:"from"`

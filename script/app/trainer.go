@@ -24,10 +24,12 @@ type Trainerapplication struct {
 	client  pb.TrainerClient
 
 	lastround int
+
+	ipfsapp *IpfsApplication
 }
 
 
-func NewTrainer(logger log.Logger, Address string, Lb *chan LBasemodel, Lc *chan LBroadcastModel) *Trainerapplication {
+func NewTrainer(logger log.Logger, Address string, Lb *chan LBasemodel, Lc *chan LBroadcastModel, ipfs *IpfsApplication) *Trainerapplication {
 	return &Trainerapplication{
 		logger: logger,
 		Address: Address,
@@ -35,6 +37,7 @@ func NewTrainer(logger log.Logger, Address string, Lb *chan LBasemodel, Lc *chan
 		LC: Lc,
 
 		lastround: -1,
+		ipfsapp:ipfs,
 	}
 }
 

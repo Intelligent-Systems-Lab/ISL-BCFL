@@ -1,19 +1,16 @@
 package main
 
 import (
-	"golang.org/x/tools/go/ssa/interp/testdata/src/os"
-	"math"
+	"math/rand"
 	"net"
 	"strconv"
 
 	//"log"
 	"time"
-
+	"github.com/dmichael/go-multicast/multicast"
 	//"encoding/json"
 	"github.com/tendermint/tendermint/libs/json"
-	"github.com/dmichael/go-multicast/multicast"
 	"github.com/tendermint/tendermint/libs/log"
-	"crypto/md5"
 )
 // 65,535 bytes (8 byte header + 65,527 bytes of data) for a UDP datagram
 // set maxbytes to 64000 = 8000 chars
@@ -25,14 +22,17 @@ type MulticastingServices struct {
 
 	LI *chan LIncomingModel
 	LBR *chan LBroadcastModel
+
+	ipfsapp *IpfsApplication
 }
 
-func NewMulticaster(logger log.Logger, address string, Li *chan LIncomingModel, Lbr *chan LBroadcastModel) *MulticastingServices {
+func NewMulticaster(logger log.Logger, address string, Li *chan LIncomingModel, Lbr *chan LBroadcastModel, ipfs *IpfsApplication) *MulticastingServices {
 	return &MulticastingServices{
 		logger: logger,
 		MAddress: address,
 		LI: Li,
 		LBR: Lbr,
+		ipfsapp: ipfs,
 	}
 }
 
@@ -46,17 +46,13 @@ func (s *MulticastingServices)BroadcastingServices() {
 	for {
 		lbr := (GetBroadcastChannel(*s.LBR)).lbroadcastmodel
 		if  len(lbr) >0 {
+			//lbr[0].B64model = s.ipfsapp.AddIpfs(string(lbr[0].B64model))
 
-			mms := ModelPackageDown(lbr[0])
+			mod, _ := json.Marshal(lbr[0])
 
-			for _,m := range mms {
-				mod, _ := json.Marshal(m)
-				conn.Write(mod)
-			}
-			//mod, _ := json.Marshal(lbr[0])
-			//
 			s.logger.Info("Broadcasting...")
-			//conn.Write(mod)
+			time.Sleep(time.Duration(rand.Intn(100))*time.Millisecond)
+			conn.Write([]byte(mod))
 			DeleteBroadcastChannel(*s.LBR)
 			s.logger.Info("Broadcasting done...")
 		}else{
@@ -85,63 +81,15 @@ func (s *MulticastingServices)msgHandler(src *net.UDPAddr, n int, b []byte) {
 	}
 	s.logger.Info("Get message : ")
 	s.logger.Info(strconv.Itoa(int(model.Round)))
-	s.logger.Info(model.B64model)
+	//s.logger.Info(model.B64model)
 	AppendIncomingChannel(*s.LI,ModelStructure{
 		From:     model.From,
 		Round:    model.Round,
+		//B64model: s.ipfsapp.CatIpfs(model.B64model),
 		B64model: model.B64model,
 	})
 
+	s.logger.Info("Append multi round : "+strconv.Itoa(int(model.Round))+", len = "+strconv.Itoa(len(GetIncomingChannel(*s.LI).lincomingmodel)))
+	s.logger.Info("Get message : Done")
 }
 
-func ModelPackageDown(mod ModelStructure) []MulticastModelStructure {
-	var mms []MulticastModelStructure
-
-	bymod := []byte(mod.B64model)
-	md5sum := md5.Sum([]byte(mod.B64model))
-
-	leng := math.Ceil(float64(len(bymod)) / float64(maxby))
-
-	for i := 1; i <= int(leng); i++ {
-		mms = append(mms, MulticastModelStructure{
-			From:         os.Getenv("ID"),
-			Round:        mod.Round,
-			PartB64model: string(bymod[:8000]),
-			Md5sum:       md5sum,
-			Total:        uint32(leng),
-			Index:        uint32(i),
-		})
-
-		if i != int(leng) {
-			bymod = bymod[8000:]
-		}
-	}
-	return mms
-}
-
-
-
-func ModelPackageUp(mms []MulticastModelStructure) ModelStructure {
-
-	leng:= mms
-	bymod := []byte(mod.B64model)
-	md5sum := md5.Sum([]byte(mod.B64model))
-
-	leng := math.Ceil(float64(len(bymod)) / float64(maxby))
-
-	for i := 1; i <= int(leng); i++ {
-		mms = append(mms, MulticastModelStructure{
-			From:         "",
-			Round:        mod.Round,
-			PartB64model: string(bymod[:8000]),
-			Md5sum:       md5sum,
-			Total:        uint32(leng),
-			Index:        uint32(i),
-		})
-
-		if i != int(leng) {
-			bymod = bymod[8000:]
-		}
-	}
-	return mms
-}

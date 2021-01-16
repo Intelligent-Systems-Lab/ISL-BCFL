@@ -62,7 +62,7 @@ class Model(nn.Module):
         
         self.classifier = nn.Sequential(nn.Linear(576, 256),
                                        nn.Dropout(0.5),
-                                       nn.Linear(256, 10))
+                                       nn.Linear(256, 47))
 
         
     def forward(self, x):
@@ -95,12 +95,13 @@ class Trainer(trainer_pb2_grpc.TrainerServicer):
         return trainer_pb2.TrainResult(Round=request.Round, Result=hashresult)
 
 
-def serve(data, port):
+def serve(data, port, dev, bat):
     print("Read dataset : ",data)
+    print("Using : ",dev)
     print("Port : ",port)
     time.sleep(2)
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    trainer_pb2_grpc.add_TrainerServicer_to_server(Trainer(data), server)
+    trainer_pb2_grpc.add_TrainerServicer_to_server(Trainer(data, dev, bat), server)
 
     server.add_insecure_port('0.0.0.0:'+port)
     server.start()
@@ -163,25 +164,21 @@ def trainOneEp(bmodel, dloader, device):
 class MNISTDataset(Dataset):
     """MNIST dataset"""
     
-    def __init__(self, feature, target=None, transform=None):
+    def __init__(self, feature, target, transform=None):
         
-        self.X = feature
-        self.y = target
+        self.X = []
+        self.Y = target
             
-        self.transform = transform
+        if transform is not None:
+            for i in range(len(feature)):
+                self.X.append(transform(feature[i]))
     
     def __len__(self):
         return len(self.X)
 
     def __getitem__(self, idx):
-        # training
-        if self.transform is not None:
-            return self.transform(self.X[idx]), self.y[idx]
-        # testing
-        elif self.y is None:
-            return [self.X[idx]]
-        # validation
-        return self.X[idx], self.y[idx]
+        
+        return self.X[idx], self.Y[idx]
 
 def getdataloader(dset = './mnist_test.csv', batch=256):
     #print(dset)
@@ -202,7 +199,7 @@ def getdataloader(dset = './mnist_test.csv', batch=256):
 
     train_set = MNISTDataset(featuresTrain.float(), targetsTrain, transform=data_transform)
     
-    trainloader = torch.utils.data.DataLoader(train_set, batch_size = batch, shuffle = True)
+    trainloader = torch.utils.data.DataLoader(train_set, batch_size = batch, shuffle = True, num_workers=4)
     return trainloader
 
 
@@ -212,9 +209,16 @@ if __name__ == '__main__':
     parser.add_argument('--data', type=str, default="/home/tedbest/Documents/mnist_train_0.csv")
     parser.add_argument('--port', type=str, default="63387")
     parser.add_argument('--device', type=str, default="CPU") # GPU/CPU
-    parser.add_argument('--batch', type=int, default=256) # GPU/CPU
+    parser.add_argument('--batch', type=int, default=256)
     parser.add_argument('-f')
     args = parser.parse_args()
+
+    if (args.device=="GPU"):
+        if torch.cuda.is_available():
+            print("GPU found.")
+        else:
+            print("GPU not found.")
+            exit(0)
 
     logging.basicConfig()
     serve(args.data, args.port, args.device, args.batch)

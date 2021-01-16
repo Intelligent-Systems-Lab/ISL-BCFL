@@ -1,4 +1,4 @@
-version: '3'
+version: '2.3'
 
 # ip map:
 #   ipfsA     --> 172.168.10.10
@@ -54,12 +54,14 @@ services:
         ipv4_address: 172.168.10.2
 
   trainer0:
-    image: tony92151/isltrainer
+    image: tony92151/isltrainer-gpu
     container_name: trainer0
+    runtime: nvidia
     environment:
       - MODE=trainer
       - ID=0
-      - DATASET=mnist
+      - DATASET=emnist
+      - NVIDIA_VISIBLE_DEVICES=0
     volumes:
       - ./script/trainer:/root
       - ./data:/mountdata
@@ -91,10 +93,12 @@ services:
   trainer1:
     image: tony92151/isltrainer
     container_name: trainer1
+    runtime: nvidia
     environment:
       - MODE=trainer
       - ID=1
-      - DATASET=mnist
+      - DATASET=emnist
+      - NVIDIA_VISIBLE_DEVICES=0
     volumes:
       - ./script/trainer:/root
       - ./data:/mountdata
@@ -126,10 +130,12 @@ services:
   trainer2:
     image: tony92151/isltrainer
     container_name: trainer2
+    runtime: nvidia
     environment:
       - MODE=trainer
       - ID=2
-      - DATASET=mnist
+      - DATASET=emnist
+      - NVIDIA_VISIBLE_DEVICES=0
     volumes:
       - ./script/trainer:/root
       - ./data:/mountdata
@@ -161,10 +167,12 @@ services:
   trainer3:
     image: tony92151/isltrainer
     container_name: trainer3
+    runtime: nvidia
     environment:
       - MODE=trainer
       - ID=3
-      - DATASET=mnist
+      - DATASET=emnist
+      - NVIDIA_VISIBLE_DEVICES=0
     volumes:
       - ./script/trainer:/root
       - ./data:/mountdata
@@ -188,6 +196,102 @@ services:
     networks:
       localnet:
         ipv4_address: 172.168.10.100
+
+##################################################
+  trainer0-gpu:
+      image: tony92151/isltrainer-gpu
+      container_name: trainer0-gpu
+      runtime: nvidia
+      environment:
+        - MODE=trainer
+        - ID=0
+        - DATASET=emnist
+      volumes:
+        - ./script/trainer:/root
+        - ./data:/mountdata
+      deploy:
+        resources:
+          reservations:
+            generic_resources:
+              - discrete_resource_spec:
+                  kind: 'gpu'
+                  value: 1
+      entrypoint: /bin/bash
+      command: /root/trainerentrypoint.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.50
+  trainer1-gpu:
+      image: tony92151/isltrainer-gpu
+      container_name: trainer1-gpu
+      runtime: nvidia
+      environment:
+        - MODE=trainer
+        - ID=1
+        - DATASET=emnist
+      volumes:
+        - ./script/trainer:/root
+        - ./data:/mountdata
+      deploy:
+        resources:
+          reservations:
+            generic_resources:
+              - discrete_resource_spec:
+                  kind: 'gpu'
+                  value: 1
+      entrypoint: /bin/bash
+      command: /root/trainerentrypoint.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.51
+
+  trainer2-gpu:
+      image: tony92151/isltrainer-gpu
+      container_name: trainer2-gpu
+      runtime: nvidia
+      environment:
+        - MODE=trainer
+        - ID=2
+        - DATASET=emnist
+      volumes:
+        - ./script/trainer:/root
+        - ./data:/mountdata
+      deploy:
+        resources:
+          reservations:
+            generic_resources:
+              - discrete_resource_spec:
+                  kind: 'gpu'
+                  value: 2
+      entrypoint: /bin/bash
+      command: /root/trainerentrypoint.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.52
+
+  trainer3-gpu:
+      image: tony92151/isltrainer-gpu
+      container_name: trainer3-gpu
+      runtime: nvidia
+      environment:
+        - MODE=trainer
+        - ID=3
+        - DATASET=emnist
+      volumes:
+        - ./script/trainer:/root
+        - ./data:/mountdata
+      deploy:
+        resources:
+          reservations:
+            generic_resources:
+              - discrete_resource_spec:
+                  kind: 'gpu'
+                  value: 2
+      entrypoint: /bin/bash
+      command: /root/trainerentrypoint.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.53
 
 ##################################################
 

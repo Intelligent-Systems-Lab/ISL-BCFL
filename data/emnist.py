@@ -22,6 +22,12 @@ xtrain, ytrain = loadlocal_mnist(
     images_path = args.data + '/train/emnist-bymerge-train-images-idx3-ubyte', 
     labels_path = args.data + '/train/emnist-bymerge-train-labels-idx1-ubyte')
 
+xtest, ytest = loadlocal_mnist(
+    images_path = args.data + '/test/emnist-bymerge-test-images-idx3-ubyte', 
+    labels_path = args.data + '/test/emnist-bymerge-test-labels-idx1-ubyte')
+
+test_data = np.insert(xtest, 0, ytest, axis=1)
+
 train_data = np.insert(xtrain, 0, ytrain, axis=1)
 
 Xf_all_list = []
@@ -55,3 +61,15 @@ for p in range(len(packages)):
     save_path = args.data+"/emnist_train_{}.csv".format(p)
     print("Create : emnist_train_{}.csv".format(p))
     df.to_csv(save_path,mode = 'w', index=False)
+
+df = pd.DataFrame(data=test_data)
+df = df.rename(columns={0: "label",1:"1x1", 2:"1x2", 3:"1x3"})
+save_path = args.data+"/emnist_test.csv"
+print("Create : emnist_test.csv")
+df.to_csv(save_path,mode = 'w', index=False)
+
+df = pd.DataFrame(data=train_data)
+df = df.rename(columns={0: "label",1:"1x1", 2:"1x2", 3:"1x3"})
+save_path = args.data+"/emnist_train_all.csv"
+print("Create : emnist_test.csv")
+df.to_csv(save_path,mode = 'w', index=False)

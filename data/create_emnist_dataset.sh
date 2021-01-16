@@ -20,5 +20,5 @@ mv emnist-bymerge-test-* ./test
 
 # pip3 install -r requirements-emnist.txt
 
-# cd ..
+cd ..
 python3 emnist.py --data $(pwd)/emnist --n $NUMOFPKG

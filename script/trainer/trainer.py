@@ -62,7 +62,7 @@ class Model(nn.Module):
         
         self.classifier = nn.Sequential(nn.Linear(576, 256),
                                        nn.Dropout(0.5),
-                                       nn.Linear(256, 47))
+                                       nn.Linear(256, 10))
 
         
     def forward(self, x):
@@ -75,8 +75,10 @@ class Model(nn.Module):
 
 
 class Trainer(trainer_pb2_grpc.TrainerServicer):
-    def __init__(self, csvdata):
-        self.dloader = getdataloader(csvdata)
+    def __init__(self, csvdata, device, batch):
+        self.dloader = getdataloader(csvdata, batch=batch)
+        self.device = device
+        # self.batch = batch
         while True:
             try:
                 self.client = ipfshttpclient.connect("/ip4/172.168.10.10/tcp/5001/http")
@@ -88,7 +90,7 @@ class Trainer(trainer_pb2_grpc.TrainerServicer):
     def Train(self, request, result):
         #print(request.BaseModel)
         print("Training...")
-        result = trainOneEp(self.client.cat(request.BaseModel).decode(), self.dloader)
+        result = trainOneEp(self.client.cat(request.BaseModel).decode(), self.dloader, self.device)
         hashresult = self.client.add_str(result)
         return trainer_pb2.TrainResult(Round=request.Round, Result=hashresult)
 
@@ -104,7 +106,7 @@ def serve(data, port):
     server.start()
     server.wait_for_termination()
 
-def trainOneEp(bmodel, dloader):
+def trainOneEp(bmodel, dloader, device):
     #return bmodel
     model = Model()
     model = base642fullmodel(bmodel)
@@ -114,9 +116,14 @@ def trainOneEp(bmodel, dloader):
     # optimizer = optim.SGD(model.parameters(), lr=0.005)
     optimizer = optim.RMSprop(model.parameters(), lr=0.001)
     loss_function = nn.CrossEntropyLoss()
+    if (device=="GPU"):
+        model.cuda()
 
     model.train()
     for data, target in dloader:
+        if (device=="GPU"):
+            data = data.cuda()
+            target = target.cuda()
 
         optimizer.zero_grad()
         #data = data.view(data.size(0),-1)
@@ -131,6 +138,8 @@ def trainOneEp(bmodel, dloader):
 
     #model.eval()
     #print(model)
+    if (device=="GPU"):
+        model.cpu()
     bmodel_ = fullmodel2base64(model)
     #print(bmodel_)
     return bmodel_
@@ -174,7 +183,7 @@ class MNISTDataset(Dataset):
         # validation
         return self.X[idx], self.y[idx]
 
-def getdataloader(dset = './mnist_test.csv'):
+def getdataloader(dset = './mnist_test.csv', batch=256):
     #print(dset)
     train = pd.read_csv(dset)
 
@@ -193,7 +202,7 @@ def getdataloader(dset = './mnist_test.csv'):
 
     train_set = MNISTDataset(featuresTrain.float(), targetsTrain, transform=data_transform)
     
-    trainloader = torch.utils.data.DataLoader(train_set, batch_size = 256, shuffle = True)
+    trainloader = torch.utils.data.DataLoader(train_set, batch_size = batch, shuffle = True)
     return trainloader
 
 
@@ -202,8 +211,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', type=str, default="/home/tedbest/Documents/mnist_train_0.csv")
     parser.add_argument('--port', type=str, default="63387")
+    parser.add_argument('--device', type=str, default="CPU") # GPU/CPU
+    parser.add_argument('--batch', type=int, default=256) # GPU/CPU
     parser.add_argument('-f')
     args = parser.parse_args()
 
     logging.basicConfig()
-    serve(args.data, args.port)
+    serve(args.data, args.port, args.device, args.batch)

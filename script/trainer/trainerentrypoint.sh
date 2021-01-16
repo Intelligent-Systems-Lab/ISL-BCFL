@@ -19,4 +19,4 @@ python3 -m grpc_tools.protoc -I . --python_out=. --grpc_python_out=. proto/train
 echo "Start trainer node at port ... $STATIC_IP:$PORT with "$DATASET"_train_$ID.csv"
 DATAPATH=/mountdata/$DATASET/"$DATASET"_train_$ID.csv
 
-python3 -u trainer.py --data $DATAPATH --port $PORT
+python3 -u trainer.py --data $DATAPATH --port $PORT --device GPU --batch 256

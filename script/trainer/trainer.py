@@ -62,7 +62,7 @@ class Model(nn.Module):
         
         self.classifier = nn.Sequential(nn.Linear(576, 256),
                                        nn.Dropout(0.5),
-                                       nn.Linear(256, 10))
+                                       nn.Linear(256, 47))
 
         
     def forward(self, x):

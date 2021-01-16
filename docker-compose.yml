@@ -59,6 +59,7 @@ services:
     environment:
       - MODE=trainer
       - ID=0
+      - DATASET=mnist
     volumes:
       - ./script/trainer:/root
       - ./data:/mountdata
@@ -93,6 +94,7 @@ services:
     environment:
       - MODE=trainer
       - ID=1
+      - DATASET=mnist
     volumes:
       - ./script/trainer:/root
       - ./data:/mountdata
@@ -127,6 +129,7 @@ services:
     environment:
       - MODE=trainer
       - ID=2
+      - DATASET=mnist
     volumes:
       - ./script/trainer:/root
       - ./data:/mountdata
@@ -161,6 +164,7 @@ services:
     environment:
       - MODE=trainer
       - ID=3
+      - DATASET=mnist
     volumes:
       - ./script/trainer:/root
       - ./data:/mountdata

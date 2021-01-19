@@ -1,7 +1,10 @@
 
-#https://scidm.nchc.org.tw/dataset/mnist
+# https://scidm.nchc.org.tw/dataset/mnist
 
-NUMOFDATA=5
+if [ -z "$NUMOFPKG" ]
+then
+    NUMOFPKG=5
+fi
 
 mkdir mnist
 cd mnist
@@ -9,4 +12,4 @@ wget https://scidm.nchc.org.tw/dataset/mnist/resource/ce2b188c-bb3e-41ab-8dfc-d9
 unzip mnist-in-csv.zip
 
 cd ..
-python3 mnist.py --data $(pwd)/mnist --n $NUMOFDATA
+python3 mnist.py --data $(pwd)/mnist --n $NUMOFPKG

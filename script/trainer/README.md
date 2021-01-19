@@ -3,6 +3,9 @@
 ```bash=
 cd {path to ISL-BCFL}/script/trainer
 
+docker run --rm -it -v $(pwd):/root/ tony92151/isltrainer python3 /root/createMOD.py /root/FIRSTMOD.txt
+# sudo chown $(whoami)  FIRSTMOD.txt
+
 # This first base model that had upload to ipfs.
 IPFSMOD=$(ipfs --api /ip4/0.0.0.0/tcp/5001 add ./firstMOD.txt -q)
 echo $IPFSMOD

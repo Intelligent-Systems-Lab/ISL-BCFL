@@ -1,5 +1,8 @@
 import ipfshttpclient
 import time
+from abci.utils import get_logger
+
+log = get_logger()
 
 
 class ipfs:
@@ -9,7 +12,7 @@ class ipfs:
                 self.client = ipfshttpclient.connect(addr)
                 break
             except:
-                print("Waiting for ipfs services at : ",addr)
+                log.info("Waiting for ipfs services at : ", addr)
                 time.sleep(1)
 
     def add(self, data):

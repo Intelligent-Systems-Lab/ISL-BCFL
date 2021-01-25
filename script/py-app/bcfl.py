@@ -14,10 +14,58 @@ from abci import (
     CodeTypeOk,
 )
 
-# Tx encoding/decoding
-from abci.utils import get_logger
+import aggregator
+import trainer
 
-log = get_logger()
+# TX :
+aggTx = {"Type": "aggregation",
+         "Param": {
+             "Round": 0,
+             "Weight": ["<hash>", "<hash>"],
+             "Result": "<hash>",
+             "Cid": 0,
+         },
+         "MaxIteration": 100,
+         "Sample": 0.5,
+         }
+updateTx = {"Type": "update",
+            "Param": {
+                "Round": 0,
+                "Weight": "<hash>",
+                "Cid": 0,
+            },
+            "MaxIteration": 100,
+            "Sample": 0.5,
+            }
+
+log = util.get_logger()
+
+
+def tx_checker(type_, tx_):
+    atx = None
+    if type_ == "aggregation":
+        atx = aggTx.copy()
+        try:
+            atx["Type"] = tx_["Type"]
+            atx["Param"]["Round"] = tx_["Param"]["Round"]
+            atx["Param"]["Weight"] = tx_["Param"]["Weight"]
+            atx["Param"]["Cid"] = tx_["Param"]["Cid"]
+            atx["MaxIteration"] = tx_["MaxIteration"]
+            atx["Sample"] = tx_["Sample"]
+        except:
+            return None
+    elif type_ == "update":
+        atx = updateTx.copy()
+        try:
+            atx["Type"] = tx_["Type"]
+            atx["Param"]["Round"] = tx_["Param"]["Round"]
+            atx["Param"]["Weight"] = tx_["Param"]["Weight"]
+            atx["Param"]["Cid"] = tx_["Param"]["Cid"]
+            atx["MaxIteration"] = tx_["MaxIteration"]
+            atx["Sample"] = tx_["Sample"]
+        except:
+            return None
+    return atx
 
 
 def encode_number(value):
@@ -28,7 +76,11 @@ def decode_number(raw):
     return int.from_bytes(raw, byteorder='big')
 
 
-class SimpleCounter(BaseApplication):
+class SimpleBCFL(BaseApplication):
+
+    def __init__(self, trainer, aggregator):
+        self.trainer = trainer
+        self.aggregator = aggregator
 
     def info(self, req) -> ResponseInfo:
         """
@@ -55,19 +107,26 @@ class SimpleCounter(BaseApplication):
         If not an order, a non-zero code is returned and the tx
         will be dropped.
         """
-        log.info("Got ChectTx w/ {}".format(tx))
-        value = decode_number(tx)
-        if not value == (self.txCount + 1):
-            # respond with non-zero code
-            log.warn("\tInconsistent Tx Value {}, txCount={}".format(value,self.txCount))
-            return ResponseCheckTx(code=1)
+        # log.info("Got ChectTx : {}".format(tx))
+
+        data = eval(tx.decode())
+        log.info(data)
+        tx_ = tx_checker(data["Type"], data)
+        if tx_ is None:
+            return ResponseCheckTx(code=1)  # reject code != 0
+
+        if data["Type"] == "aggregation":
+            if self.aggregator.aggergateCheck():
+                return ResponseCheckTx(code=CodeTypeOk)
+        elif data["Type"] == "update":
+            pass
         return ResponseCheckTx(code=CodeTypeOk)
 
     def deliver_tx(self, tx) -> ResponseDeliverTx:
         """Simply increment the state"""
         value = decode_number(tx)
         self.txCount += 1
-        log.info("Got DeliverTx w/ {}, so txCount increase to {}".format(value,self.txCount))
+        log.info("Got DeliverTx w/ {}, so txCount increase to {}".format(value, self.txCount))
         return ResponseDeliverTx(code=CodeTypeOk)
 
     def query(self, req) -> ResponseQuery:
@@ -85,10 +144,13 @@ class SimpleCounter(BaseApplication):
 if __name__ == '__main__':
     # Define argparse argument for changing proxy app port
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', type=int, default=26657, help='Proxy app port')
+    parser.add_argument('-p', type=int, default=26658, help='Proxy app port')
     args = parser.parse_args()
 
+    newagg = aggregator()
+    newtrain = trainer()
+
     # Create the app
-    app = ABCIServer(app=SimpleCounter(), port=args.p)
+    app = ABCIServer(app=SimpleBCFL(newtrain, newagg), port=args.p)
     # Run it
     app.run()

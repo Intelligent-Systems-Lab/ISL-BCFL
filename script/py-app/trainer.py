@@ -23,5 +23,5 @@ class trainer:
         self.batchsize = batchsize
         self.ipfsHandler = ipfsHandler
 
-    def training(self):
-        pass
+    def train(self, bmodel) -> str:
+        return "train done"

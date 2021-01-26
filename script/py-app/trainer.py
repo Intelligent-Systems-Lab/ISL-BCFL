@@ -4,24 +4,75 @@ from torchvision import transforms
 from torch.utils.data import DataLoader, TensorDataset, Dataset
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch import optim
-import pandas as pd
-import sys
-import time
-from concurrent import futures
-import logging
-import grpc
 import argparse
 import base64
-import io
+import io, os
 import ipfshttpclient
+import time
+import thread_handler as th
+
+from utils import *
+
+
+def train(logger, dbHandler, bmodel, _round, sender, dataloader, device="GPU"):
+    logger.info("Train start")
+    # model = Model()
+    # model = base642fullmodel(dbHandler.cat(bmodel))
+    #
+    # optimizer = optim.RMSprop(model.parameters(), lr=0.001)
+    # loss_function = nn.CrossEntropyLoss()
+    # if (device == "GPU"):
+    #     model.cuda()
+    #
+    # model.train()
+    # for data, target in dataloader:
+    #     if (device == "GPU"):
+    #         data = data.cuda()
+    #         target = target.cuda()
+    #
+    #     optimizer.zero_grad()
+    #     # data = data.view(data.size(0),-1)
+    #
+    #     output = model(data.float())
+    #
+    #     loss = loss_function(output, target)
+    #
+    #     loss.backward()
+    #
+    #     optimizer.step()
+    #
+    # if (device == "GPU"):
+    #     model.cpu()
+    #
+    # dbres = dbHandler.add(fullmodel2base64(model))
+
+    res = {"Round": _round,
+           "Weight": "dbres",
+           "Cid": 0,
+           # "Cid": os.environ.get('ID'),
+           }
+    # time.sleep(3)
+    send_result = sender.sendupdate(res)
+    logger.info("Train done")
+    return send_result
 
 
 class trainer:
-    def __init__(self, dataset, ipfsHandler, devices="CPU", batchsize=1024, ):
-        self.dataset = dataset  # path to dataset
+    def __init__(self, logger, dataset, dbHandler, sender, devices="CPU", batchsize=1024):
+        self.logger = logger
+        # self.dataset = dataset  # path to dataset
         self.devices = devices
         self.batchsize = batchsize
-        self.ipfsHandler = ipfsHandler
+        self.dbHandler = dbHandler
 
-    def train(self, bmodel) -> str:
-        return "train done"
+        # self.dataloader = getdataloader(dataset)
+        self.dataloader = None
+        self.sender = sender
+
+    def trainRun(self, bmodel_, round_):
+        t = th.create_job(train, (self.logger, self.dbHandler, bmodel_, round_, self.sender, self.dataloader))
+        t.start()
+        self.logger.info("Run done")
+
+    # def trainRun(self, bmodel):
+    #     print("Run train")

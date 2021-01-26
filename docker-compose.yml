@@ -2,15 +2,14 @@ version: '2.3'
 
 # ip map:
 #   ipfsA     --> 172.168.10.10
-#   node0     --> 172.168.10.2
-#   node1     --> 172.168.10.3
-#   node2     --> 172.168.10.4
-#   node3     --> 172.168.10.5
-#   trainer0  --> 172.168.10.50
-#   trainer1  --> 172.168.10.51
-#   trainer2  --> 172.168.10.52
-#   trainer3  --> 172.168.10.53
-#   agg       --> 172.168.10.100
+#   core0    --> 172.168.10.2
+#   core1     --> 172.168.10.3
+#   core2     --> 172.168.10.4
+#   core3     --> 172.168.10.5
+#   abci0     --> 172.168.10.50
+#   abci1     --> 172.168.10.51
+#   abci2     --> 172.168.10.52
+#   abci3     --> 172.168.10.53
 #
 services:
   ipfsA:
@@ -37,18 +36,18 @@ services:
 ##################################################
 ##################################################
   node0:
-    image: tony92151/tendermint-docker
+    image: tendermint/tendermint:v0.34.0
     container_name: node0
     ports:
       - "26656-26657:26656-26657"
     environment:
-      - MODE=nodeapp
+      - MODE=core
       - ID=0
     volumes:
       - ./script:/root
       - ./nodes:/tendermint
     entrypoint: /bin/bash
-    command: /root/entrypoint.sh
+    command: /root/entrypoint-py.sh
     networks:
       localnet:
         ipv4_address: 172.168.10.2
@@ -74,18 +73,18 @@ services:
 ##################################################
 ##################################################
   node1:
-    image: tony92151/tendermint-docker
+    image: tendermint/tendermint:v0.34.0
     container_name: node1
     ports:
       - "26661-26662:26656-26657"
     environment:
-      - MODE=nodeapp
+      - MODE=core
       - ID=1
     volumes:
       - ./script:/root
       - ./nodes:/tendermint
     entrypoint: /bin/bash
-    command: /root/entrypoint.sh
+    command: /root/entrypoint-py.sh
     networks:
       localnet:
         ipv4_address: 172.168.10.3
@@ -111,18 +110,18 @@ services:
 ##################################################
 ##################################################
   node2:
-    image: tony92151/tendermint-docker
+    image: tendermint/tendermint:v0.34.0
     container_name: node2
     ports:
       - "26663-26664:26656-26657"
     environment:
-      - MODE=nodeapp
+      - MODE=core
       - ID=2
     volumes:
       - ./script:/root
       - ./nodes:/tendermint
     entrypoint: /bin/bash
-    command: /root/entrypoint.sh
+    command: /root/entrypoint-py.sh
     networks:
       localnet:
         ipv4_address: 172.168.10.4
@@ -148,18 +147,18 @@ services:
 ##################################################
 ##################################################
   node3:
-    image: tony92151/tendermint-docker
+    image: tendermint/tendermint:v0.34.0
     container_name: node3
     ports:
       - "26665-26666:26656-26657"
     environment:
-      - MODE=nodeapp
+      - MODE=core
       - ID=3
     volumes:
       - ./script:/root
       - ./nodes:/tendermint
     entrypoint: /bin/bash
-    command: /root/entrypoint.sh
+    command: /root/entrypoint-py.sh
     networks:
       localnet:
         ipv4_address: 172.168.10.5
@@ -182,32 +181,18 @@ services:
       localnet:
         ipv4_address: 172.168.10.53
 
-##################################################
-  agg:
-    image: tony92151/isltrainer
-    container_name: agg
-    environment:
-      - MODE=agg
-      - ID=0
-    volumes:
-      - ./script/aggregator:/root
-    entrypoint: /bin/bash
-    command: /root/aggregatorentrypoint.sh
-    networks:
-      localnet:
-        ipv4_address: 172.168.10.100
 
 ##################################################
-  trainer0-gpu:
-      image: tony92151/isltrainer-gpu
+  abci0-gpu:
+      image: py-abci
       container_name: trainer0-gpu
       runtime: nvidia
       environment:
-        - MODE=trainer
+        - MODE=abci
         - ID=0
         - DATASET=emnist
       volumes:
-        - ./script/trainer:/root
+        - ./script/py-app:/root
         - ./data:/mountdata
       deploy:
         resources:
@@ -221,16 +206,16 @@ services:
       networks:
         localnet:
           ipv4_address: 172.168.10.50
-  trainer1-gpu:
-      image: tony92151/isltrainer-gpu
+  abci1-gpu:
+      image: py-abci
       container_name: trainer1-gpu
       runtime: nvidia
       environment:
-        - MODE=trainer
+        - MODE=abci
         - ID=1
         - DATASET=emnist
       volumes:
-        - ./script/trainer:/root
+        - ./script/py-app:/root
         - ./data:/mountdata
       deploy:
         resources:
@@ -245,16 +230,16 @@ services:
         localnet:
           ipv4_address: 172.168.10.51
 
-  trainer2-gpu:
-      image: tony92151/isltrainer-gpu
+  abci2-gpu:
+      image: py-abci
       container_name: trainer2-gpu
       runtime: nvidia
       environment:
-        - MODE=trainer
+        - MODE=abci
         - ID=2
         - DATASET=emnist
       volumes:
-        - ./script/trainer:/root
+        - ./script/py-app:/root
         - ./data:/mountdata
       deploy:
         resources:
@@ -269,16 +254,16 @@ services:
         localnet:
           ipv4_address: 172.168.10.52
 
-  trainer3-gpu:
-      image: tony92151/isltrainer-gpu
+  abci3-gpu:
+      image: py-abci
       container_name: trainer3-gpu
       runtime: nvidia
       environment:
-        - MODE=trainer
+        - MODE=abci
         - ID=3
         - DATASET=emnist
       volumes:
-        - ./script/trainer:/root
+        - ./script/py-app:/root
         - ./data:/mountdata
       deploy:
         resources:

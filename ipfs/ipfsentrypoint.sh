@@ -9,6 +9,7 @@ echo 'Initialize IPFS ...'
 if [ -d "/root/ipfs/" ]; then
     echo "Removing /root/ipfs/..."
   rm -rf /root/.ipfs/
+  rm -rf /root/ipfs/
 fi
 
 ipfs init

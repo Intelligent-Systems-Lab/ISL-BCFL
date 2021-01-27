@@ -11,7 +11,7 @@ version: '2.3'
 ##################################################
 services:
   node0:
-      image: tendermint/tendermint:v0.34.0
+      image: tendermint/tendermint:v0.34.3
       container_name: node0
       user: root
       ports:
@@ -29,7 +29,7 @@ services:
         localnet:
           ipv4_address: 172.168.10.50
   node1:
-      image: tendermint/tendermint:v0.34.0
+      image: tendermint/tendermint:v0.34.3
       container_name: node1
       user: root
       environment:
@@ -46,7 +46,7 @@ services:
           ipv4_address: 172.168.10.51
 
   node2:
-      image: tendermint/tendermint:v0.34.0
+      image: tendermint/tendermint:v0.34.3
       container_name: node2
       user: root
       environment:
@@ -63,7 +63,7 @@ services:
           ipv4_address: 172.168.10.52
 
   node3:
-      image: tendermint/tendermint:v0.34.0
+      image: tendermint/tendermint:v0.34.3
       container_name: node3
       user: root
       environment:
@@ -81,7 +81,7 @@ services:
 
 ##################################################
   nodes:
-      image: tendermint/tendermint:v0.34.0
+      image: tendermint/tendermint:v0.34.3
       user: root
       environment:
         - MODE=nodes

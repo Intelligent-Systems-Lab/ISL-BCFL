@@ -1,0 +1,110 @@
+version: '2.3'
+
+# ip map:
+#   ipfsA     --> 172.168.10.10
+#   abci0     --> 172.168.10.50
+#   abci1     --> 172.168.10.51
+#   abci2     --> 172.168.10.52
+#   abci3     --> 172.168.10.53
+#
+
+##################################################
+services:
+  node0:
+      image: tendermint/tendermint:v0.34.0
+      container_name: node0
+      user: root
+      ports:
+        - "26656-26657:26656-26657"
+      environment:
+        - MODE=core
+        - ID=0
+        - DATASET=emnist
+      volumes: 
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+      entrypoint: /bin/bash
+      command: /root/entrypoint-kvtest.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.50
+  node1:
+      image: tendermint/tendermint:v0.34.0
+      container_name: node1
+      user: root
+      environment:
+        - MODE=core
+        - ID=1
+        - DATASET=emnist
+      volumes:
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+      entrypoint: /bin/bash
+      command: /root/entrypoint-kvtest.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.51
+
+  node2:
+      image: tendermint/tendermint:v0.34.0
+      container_name: node2
+      user: root
+      environment:
+        - MODE=core
+        - ID=2
+        - DATASET=emnist
+      volumes:
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+      entrypoint: /bin/bash
+      command: /root/entrypoint-kvtest.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.52
+
+  node3:
+      image: tendermint/tendermint:v0.34.0
+      container_name: node3
+      user: root
+      environment:
+        - MODE=core
+        - ID=3
+        - DATASET=emnist
+      volumes:
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+      entrypoint: /bin/bash
+      command: /root/entrypoint-kvtest.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.53
+
+##################################################
+  nodes:
+      image: tendermint/tendermint:v0.34.0
+      user: root
+      environment:
+        - MODE=nodes
+        - DATASET=emnist
+      volumes:
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+      entrypoint: /bin/bash
+      command: /root/entrypoint-kvtest.sh
+      networks:
+        localnet:
+  ##################################################
+
+volumes:
+    tenconfig:
+
+
+networks:
+  localnet:
+    #driver: bridge
+    ipam:
+      #driver: default
+      config:
+      -
+        subnet: 172.168.10.0/24
+        #gateway: 172.168.10.1

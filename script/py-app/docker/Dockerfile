@@ -23,3 +23,21 @@ RUN gdown --id 15k8E-XuvcatKP1uFqv4pn3PignaKNMOv -O ./abci-0.6.1.tar.gz &&\
     python setup.py install &&\
     cd .. &&\
     rm -r abci-0.6.1 abci-0.6.1.tar.gz
+
+RUN add-apt-repository ppa:longsleep/golang-backports &&\
+    apt-get update &&\
+    apt-get install -y golang-go &&\
+    apt-get install -y autotools-dev automake curl git
+
+
+RUN echo export GOPATH=\"\$HOME/go\" >> ~/.bash_profile &&\
+    echo export PATH=\"\$PATH:\$GOPATH/bin\" >> ~/.bash_profile &&\
+    echo export GO111MODULE=on >> ~/.bash_profile &&\
+    echo "export PATH=\$PATH:/go/bin:/usr/local/go/bin" >>  /root/.bashrc &&\
+    mkdir -p $GOPATH/src/github.com/tendermint &&\
+    cd $GOPATH/src/github.com/tendermint  &&\
+    git clone -b v0.34.0 --single-branch https://github.com/tendermint/tendermint.git &&\
+    cd tendermint &&\
+    make tools &&\
+    make build &&\
+    cp build/tendermint /usr/local/bin

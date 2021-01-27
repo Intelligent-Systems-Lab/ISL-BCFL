@@ -16,6 +16,7 @@ import base64
 import io, os
 import ipfshttpclient
 import thread_handler as th
+from messages import AggregateMsg, UpdateMsg
 
 from utils import *
 
@@ -46,14 +47,15 @@ def aggergate(logger, dbHandler, models, _round, sender):
     #
     # dbres = dbHandler.add(fullmodel2base64(new_model))
 
-    res = {"Round": _round+1,
-           "Weight": models,
-           "Result": "dbres",
-           "Cid": 0,
-           # "Cid": os.environ.get('ID'),
-           }
-    # time.sleep(3)
-    send_result = sender.sendagg(res)
+    result = AggregateMsg()
+    result.set_sample(1)
+    result.set_maxIteration(100)
+    result.set_round(_round+1)
+    result.set_weight(models)
+    result.set_result("dbres")
+    result.set_cid(0)
+
+    send_result = sender.send(result.json_serialize())
     logger.info("Agg done")
     return send_result
 

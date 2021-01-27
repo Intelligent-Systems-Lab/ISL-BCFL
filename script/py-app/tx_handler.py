@@ -36,47 +36,12 @@ class tx:
         self.url = url_
         self.headers = {'content-type': 'application/json'}
 
-    def sendagg(self, d, timeout=None, timeoutEvent=None) -> str:
-        # tx = base64.b64encode(d.encode('UTF-8')).decode('UTF-8')
+    def send(self, data_) -> str:
         payload_ = exampleTX.copy()
-        eParams = exampleParams.copy()
-        eParams["Type"] = "aggregation"
-
-        param = exampleAgg.copy()
-        param["Round"] = d["Round"]
-        param["Weight"] = d["Weight"]
-        param["Result"] = d["Result"]
-        param["Cid"] = d["Cid"]
-
-        eParams["Param"] = param
-
-        print(eParams)
-
-        tx = base64.b64encode(json.dumps(eParams).encode()).decode()
-        print("tx: ", tx)
-        print("eParams: ", json.dumps(eParams))
-
-        payload_['params'] = [tx]
-        print("payload_: ", json.dumps(payload_))
+        tx_ = base64.b64encode(data_.encode()).decode()
+        print("tx: ", tx_)
+        payload_['params'] = [tx_]
+        print("payload: ", json.dumps(payload_))
         response = requests.post(self.url, data=json.dumps(payload_), headers=self.headers)
         return response
 
-    def sendupdate(self, d, timeout=None, timeoutEvent=None) -> str:
-        payload_ = exampleTX.copy()
-        eParams = exampleParams.copy()
-        eParams["Type"] = "update"
-
-        param = exampleupdate.copy()
-        param["Round"] = d["Round"]
-        param["Weight"] = d["Weight"]
-        param["Cid"] = d["Cid"]
-
-        eParams["Param"] = param
-        print(eParams)
-
-        tx = base64.b64encode(json.dumps(eParams).encode()).decode()
-        payload_['params'] = [tx]
-        response = requests.post(self.url, data=json.dumps(payload_), headers=self.headers)
-        return response
-
-    # def validator

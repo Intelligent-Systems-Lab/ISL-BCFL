@@ -2,6 +2,7 @@ import base64
 
 import requests
 import json
+from utils import Upper_TX_formater, Lower_TX_formater
 
 data = {"round": 0,
         "weight": "$IPFSMOD",
@@ -13,7 +14,7 @@ exampleTX = {"jsonrpc": "2.0",
              "params": [],
              "id": 1
              }
-exampleParams = {"Type": "aggregation",
+exampleParams = {"type": "aggregation",
                  "Param": {},
                  "MaxIteration": 100,
                  "Sample": 0.5,
@@ -38,6 +39,7 @@ class tx:
 
     def send(self, data_) -> str:
         payload_ = exampleTX.copy()
+        data_ = json.dumps(Upper_TX_formater(eval(data_)))
         tx_ = base64.b64encode(data_.encode()).decode()
         print("tx: ", tx_)
         payload_['params'] = [tx_]

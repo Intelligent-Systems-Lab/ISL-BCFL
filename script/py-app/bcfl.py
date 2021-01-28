@@ -1,6 +1,7 @@
 import struct
 import abci.utils as util
 import argparse
+import json
 
 from abci import (
     ABCIServer,
@@ -18,7 +19,7 @@ from aggregator import aggregator
 from trainer import trainer
 from db import db as moddb
 from tx_handler import tx as sender
-from state_controller import stateController
+from state_controller import State_controller
 
 log = util.get_logger()
 
@@ -64,12 +65,17 @@ class SimpleBCFL(BaseApplication):
 
         data = eval(tx.decode())
         log.info(data)
-        if self.controller.txChecker(data):
-            return ResponseCheckTx(code=1)  # reject code != 0
+        log.info(type(data))
+        # if not self.controller.tx_checker(data):
+        #     return ResponseCheckTx(code=1)  # reject code != 0
+        log.info("Check ok")
+        log.info("Check ok")
+        # log.info("Check ok")
+        # log.info("Check ok")
 
-        if data["Type"] == "aggregation":
-            if self.aggregator.aggergateCheck(data["Param"]):
-                return ResponseCheckTx(code=CodeTypeOk)
+        # if data["Type"] == "aggregation":
+        #     if self.aggregator.aggergateCheck(data["weight"]):
+        #         return ResponseCheckTx(code=CodeTypeOk)
 
         return ResponseCheckTx(code=CodeTypeOk)
 
@@ -77,10 +83,11 @@ class SimpleBCFL(BaseApplication):
         """Simply increment the state"""
         # value = decode_number(tx)
         # self.txCount += 1
-        # log.info("Got DeliverTx w/ {}, so txCount increase to {}".format(value, self.txCount))
+        log.info("Got DeliverTx {}, so txCount increase to {}".format(tx))
         data = eval(tx.decode())
 
-        self.controller.txManager(data)
+        # self.controller.tx_manager(data)
+        log.info("Delivery ok")
 
         return ResponseDeliverTx(code=CodeTypeOk)
 
@@ -108,9 +115,9 @@ if __name__ == '__main__':
     newagg = aggregator(log, newdb, newsender)
     newtrain = trainer(log, args.dataset, newdb, newsender)
 
-    newController = stateController(log, newtrain, newagg, 4)
+    newcontroller = State_controller(log, newtrain, newagg, 4)
 
     # Create the app
-    app = ABCIServer(app=SimpleBCFL(newController), port=args.p)
+    app = ABCIServer(app=SimpleBCFL(newcontroller), port=args.p)
     # Run it
     app.run()

@@ -23,24 +23,41 @@ else
 fi
 sleep 1
 
-if [ -f "/tendermint/mytestnet" ]
+if [ "$ID" = "0" ]
 then
-    echo "Init tendermint node env."
-    sleep 2
-    mkdir -p /tendermint/mytestnet
-    cd /tendermint/mytestnet
+    echo "Removing"
+    rm -r /tenconfig/mytestnet
+    cd /tenconfig
     tendermint testnet
-else 
-    echo "/tendermint/mytestnet exist"
 fi
 
+sleep 3
 
-export TMHOME="/tendermint/mytestnet/node$ID"
+DATAPATH=/mountdata/$DATASET/"$DATASET"_train_$ID.csv
 
 if [ "$MODE" = "core" ]
 then
-    tendermint node --home $TMHOME --proxy_app "tcp://abci$ID-gpu:26658"
-else
-    DATAPATH=/mountdata/$DATASET/"$DATASET"_train_$ID.csv
-    python3 /root/bcfl.py -dataset $DATAPATH
+    export TMHOME="/tenconfig/mytestnet/node$ID"
+
+    rm -r /root/logs
+    mkdir -p /root/logs
+
+    sed -i 's#laddr = "tcp://127.0.0.1:26657"#laddr = "tcp://0.0.0.0:26657"#'  $TMHOME/config/config.toml
+    echo "Start"
+    python /root/py-app/bcfl.py -dataset $DATAPATH  &
+
+    tendermint node --home $TMHOME --proxy_app "tcp://localhost:26658"
+
+else 
+    sleep 2
+    rm -r /root/.tendermint
+    tendermint init
+    rm /root/.tendermint/config/config.toml
+    rm /root/.tendermint/config/genesis.json
+    cp /tenconfig/mytestnet/node0/config/config.toml /root/.tendermint/config
+    cp /tenconfig/mytestnet/node0/config/genesis.json /root/.tendermint/config
+
+    NODEID=$(python -c 'import random; print(random.randint(1,100000))')
+    sed -i "s#moniker = \"node0\"#moniker = \"node$NODEID\"#"  /root/.tendermint/config/config.toml
+    tendermint node --proxy_app kvstore
 fi

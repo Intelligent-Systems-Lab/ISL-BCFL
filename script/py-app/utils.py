@@ -16,6 +16,7 @@ import ipfshttpclient
 
 torch.nn.Module.dump_patches = True
 
+
 def fullmodel2base64(model):
     buffer = io.BytesIO()
     torch.save(model, buffer)
@@ -101,3 +102,18 @@ class Model(nn.Module):
 
         return x
 
+
+def Upper_TX_formater(dict_):
+    output = {}
+    for k, v in dict_.items():
+        k = k[0].upper() + k[1:]
+        output[k] = v
+    return output
+
+
+def Lower_TX_formater(dict_):
+    output = {}
+    for k, v in dict_.items():
+        k = k[0].lower() + k[1:]
+        output[k] = v
+    return output

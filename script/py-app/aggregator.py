@@ -47,13 +47,12 @@ def aggergate(logger, dbHandler, models, _round, sender):
     #
     # dbres = dbHandler.add(fullmodel2base64(new_model))
 
+    AggregateMsg.set_cid(0)
+
     result = AggregateMsg()
-    result.set_sample(1)
-    result.set_maxIteration(100)
     result.set_round(_round+1)
-    result.set_weight(models)
+    result.set_weight(["models"])
     result.set_result("dbres")
-    result.set_cid(0)
 
     send_result = sender.send(result.json_serialize())
     logger.info("Agg done")

@@ -1,0 +1,133 @@
+version: '2.3'
+
+# ip map:
+#   ipfsA     --> 172.168.10.10
+#   node0     --> 172.168.10.50
+#   node1     --> 172.168.10.51
+#   node2     --> 172.168.10.52
+#   node3     --> 172.168.10.53
+#
+
+##################################################
+services:
+  ipfsA:
+      image: tony92151/ipfs-alpine
+      container_name: ipfsA
+      ports:
+        - 4001:4001
+        - 5001:5001
+      environment:
+        HOSTIP: 172.168.10.10
+        IPFS_PATH: /root/ipfs
+        
+      volumes: # default path : /data/ipfs/swarm.key
+        # - ./ipfskey:/data/ipfs/ 
+        - ./ipfs:/root
+        # - ipfscon:/ipfscon
+      entrypoint: /bin/bash
+      command: /root/ipfsentrypoint.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.10
+  node0:
+      image: tony92151/py-abci
+      container_name: node0
+      user: root
+      ports:
+        - "26656-26657:26656-26657"
+      environment:
+        - MODE=core
+        - ID=0
+        - DATASET=emnist
+      volumes: 
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+        - ./data:/mountdata
+      entrypoint: /bin/bash
+      command: /root/entrypoint-py.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.50
+  node1:
+      image: tony92151/py-abci
+      container_name: node1
+      user: root
+      environment:
+        - MODE=core
+        - ID=1
+        - DATASET=emnist
+      volumes:
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+        - ./data:/mountdata
+      entrypoint: /bin/bash
+      command: /root/entrypoint-py.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.51
+
+  node2:
+      image: tony92151/py-abci
+      container_name: node2
+      user: root
+      environment:
+        - MODE=core
+        - ID=2
+        - DATASET=emnist
+      volumes:
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+        - ./data:/mountdata
+      entrypoint: /bin/bash
+      command: /root/entrypoint-py.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.52
+
+  node3:
+      image: tony92151/py-abci
+      container_name: node3
+      user: root
+      environment:
+        - MODE=core
+        - ID=3
+        - DATASET=emnist
+      volumes:
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+        - ./data:/mountdata
+      entrypoint: /bin/bash
+      command: /root/entrypoint-py.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.53
+
+##################################################
+  nodes:
+      image: tony92151/py-abci
+      user: root
+      environment:
+        - MODE=nodes
+        - DATASET=emnist
+      volumes:
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+      entrypoint: /bin/bash
+      command: /root/entrypoint-py.sh
+      networks:
+        localnet:
+  ##################################################
+
+volumes:
+    tenconfig:
+
+
+networks:
+  localnet:
+    #driver: bridge
+    ipam:
+      #driver: default
+      config:
+      -
+        subnet: 172.168.10.0/24
+        #gateway: 172.168.10.1

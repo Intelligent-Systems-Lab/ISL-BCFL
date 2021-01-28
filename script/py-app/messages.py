@@ -1,33 +1,35 @@
 import json
+import uuid
 
 
 class BaseMsg:
-    __msg_Type = ""
-    __msg_MaxIteration = 0
-    __msg_Sample = 1
+    __msg_type = ""
+    __msg_cid = 0
+    __msg_round = 0
 
     def __init__(self, **kwargs):
-        self.Type = kwargs["Type"] if "Type" in kwargs else BaseMsg.__msg_Type
-        self.MaxIteration = kwargs["MaxIteration"] if "MaxIteration" in kwargs else BaseMsg.__msg_MaxIteration
-        self.Sample = kwargs["Sample"] if "Sample" in kwargs else BaseMsg.__msg_Sample
+        self._type = kwargs["type"] if "type" in kwargs else BaseMsg.__msg_type
+        self._cid = kwargs["cid"] if "cid" in kwargs else UpdateMsg.__msg_cid
+        self._round = kwargs["round"] if "task" in kwargs else UpdateMsg.__msg_round
 
     def get_type(self):
-        return self.Type
+        return self._type
 
-    def get_maxIteration(self):
-        return self.MaxIteration
+    def get_cid(self):
+        return self._cid
 
-    def get_sample(self):
-        return self.Sample
+    def get_round(self):
+        return self._round
 
     def set_type(self, value):
-        self.Type = value
+        self._type = value
 
-    def set_maxIteration(self, value):
-        self.MaxIteration = value
+    @classmethod
+    def set_cid(cls, value):
+        cls.__msg_cid = value
 
-    def set_sample(self, value):
-        self.Sample = value
+    def set_round(self, value):
+        self._round = value
 
     # def __str__(self):
     #     tmp = self.__dict__
@@ -38,112 +40,117 @@ class BaseMsg:
 
 
 class UpdateMsg(BaseMsg):
-    __msg_Round = 0
-    __msg_Weight = ""
-    __msg_Cid = 0
+    __msg_round = 0
+    __msg_weight = ""
 
     def __init__(self, **kwargs):
-        if not "Type" in kwargs:
-            kwargs["Type"] = "update"
+        if not "type" in kwargs:
+            kwargs["type"] = "update"
         else:
-            if not kwargs["Type"] == "update":
-                raise TypeError(f'TypeError(update)<={kwargs["Type"]}')
+            if not kwargs["type"] == "update":
+                raise TypeError(f'TypeError(update)<={kwargs["type"]}')
         super().__init__(**kwargs)
-        self.Round = kwargs["Round"] if "Round" in kwargs else UpdateMsg.__msg_Round
-        self.Weight = kwargs["Weight"] if "Weight" in kwargs else UpdateMsg.__msg_Weight
-        self.Cid = kwargs["Cid"] if "Cid" in kwargs else UpdateMsg.__msg_Cid
-
-    def get_round(self):
-        return self.Round
+        self._weight = kwargs["weight"] if "weight" in kwargs else UpdateMsg.__msg_weight
 
     def get_weight(self):
-        return self.Weight
-
-    def get_cid(self):
-        return self.Cid
-
-    def set_round(self, value):
-        self.Round = value
+        return self._weight
 
     def set_weight(self, value):
-        self.Weight = value
-
-    def set_cid(self, value):
-        self.Cid = value
+        self._weight = value
 
     def __str__(self):
-        param = {}
+        output = {}
         data = self.__dict__
-        param["Round"] = data.pop("Round")
-        param["Weight"] = data.pop("Weight")
-        param["Cid"] = data.pop("Cid")
-        data["Param"] = param
-        return data
+        for k, v in data.items():
+            output[k[1:]] = v
+        return json.dumps(output)
 
     def json_serialize(self):
-        return json.dumps(self.__str__())
-
-    def json(self):
         return self.__str__()
 
 
 class AggregateMsg(BaseMsg):
-    __msg_Round = 0
-    __msg_Weight = []
-    __msg_Result = ""
-    __msg_Cid = 0
+    __msg_weight = []
+    __msg_result = ""
 
     def __init__(self, **kwargs):
-        if not "Type" in kwargs:
-            kwargs["Type"] = "aggregation"
+        if not "type" in kwargs:
+            kwargs["type"] = "aggregation"
         else:
-            if not kwargs["Type"] == "aggregation":
-                raise TypeError(f'TypeError(aggregation)<={kwargs["Type"]}')
+            if not kwargs["type"] == "aggregation":
+                raise TypeError(f'TypeError(aggregation)<={kwargs["type"]}')
 
         super().__init__(**kwargs)
-        self.Round = kwargs["Round"] if "Round" in kwargs else AggregateMsg.__msg_Round
-        self.Weight = kwargs["Weight"] if "Weight" in kwargs else AggregateMsg.__msg_Weight
-        self.Result = kwargs["Weight"] if "Weight" in kwargs else AggregateMsg.__msg_Result
-        self.Cid = kwargs["Cid"] if "Cid" in kwargs else AggregateMsg.__msg_Cid
-
-    def get_round(self):
-        return self.Round
+        self._weight = kwargs["weight"] if "weight" in kwargs else AggregateMsg.__msg_weight
+        self._result = kwargs["result"] if "result" in kwargs else AggregateMsg.__msg_result
 
     def get_weight(self):
-        return self.Weight
+        return self._weight
 
     def get_result(self):
-        return self.Result
-
-    def get_cid(self):
-        return self.Cid
-
-    def set_round(self, value):
-        self.Round = value
+        return self._result
 
     def set_weight(self, value):
-        self.Weight = value
+        self._weight = value
 
     def set_result(self, value):
-        self.Result = value
-
-    def set_cid(self, value):
-        self.Cid = value
+        self._result = value
 
     def __str__(self):
-        param = {}
+        output = {}
         data = self.__dict__
-        param["Round"] = data.pop("Round")
-        param["Weight"] = data.pop("Weight")
-        param["Result"] = data.pop("Result")
-        param["Cid"] = data.pop("Cid")
-        data["Param"] = param
-        return data
+        for k, v in data.items():
+            output[k[1:]] = v
+        return json.dumps(output)
 
     def json_serialize(self):
-        return json.dumps(self.__str__())
+        return self.__str__()
 
-    def json(self):
+
+class InitMsg:
+    __msg_type = ""
+    __msg_weight = ""
+    __msg_max_iteration = ""
+    __msg_sample = 1
+
+    def __init__(self, **kwargs):
+        if not "type" in kwargs:
+            kwargs["type"] = "create_task"
+        else:
+            if not kwargs["type"] == "create_task":
+                raise TypeError(f'TypeError(create_task)<={kwargs["type"]}')
+
+        self._type = kwargs["type"] if "type" in kwargs else InitMsg.__msg_type
+        self._weight = kwargs["weight"] if "weight" in kwargs else InitMsg.__msg_weight
+        self._max_iteration = kwargs["max_iteration"] if "max_iteration" in kwargs else InitMsg.__msg_max_iteration
+        self._sample = kwargs["sample"] if "sample" in kwargs else InitMsg.__msg_sample
+
+    def get_weight(self):
+        return self._weight
+
+    def get_max_iteration(self):
+        return self._max_iteration
+
+    def get_sample(self):
+        return self._sample
+
+    def set_weight(self, value):
+        self._weight = value
+
+    def set_max_iteration(self, value):
+        self._max_iteration = value
+
+    def set_sample(self, value):
+        self._sample = value
+
+    def __str__(self):
+        output = {}
+        data = self.__dict__
+        for k, v in data.items():
+            output[k[1:]] = v       # remove "_" before key
+        return json.dumps(output)
+
+    def json_serialize(self):
         return self.__str__()
 
 
@@ -152,11 +159,24 @@ if __name__ == "__main__":
     print(a.json_serialize())
 
     b = AggregateMsg()
-    b.set_sample(1)
-    b.set_maxIteration(100)
     b.set_round(23)
     b.set_weight(["abc", "def"])
     b.set_result("123")
     print(b.json_serialize())
-    # >  {"Type": "aggregation", "MaxIteration": 100, "Sample": 1, "Param": {"Round": 23, "Weight": ["abc", "def"],
-    #     "Result": "123", "Cid": 0}}
+    # > {"type": "aggregation", "cid": 0, "task": "8711c4a6b0c34330a5225abf0fd25bb8",
+    #    "round": 23, "weight": ["abc", "def"], "result": "123"}
+
+    c = InitMsg()
+    c.set_sample(1)
+    c.set_weight("123456")
+    c.set_max_iteration(100)
+    print(c.json_serialize())
+    # > {"type": "create_task", "weight": "123456", "max_iteration": 100, "sample": 1}
+
+    d = InitMsg(**json.loads(c.json_serialize()))
+    print(d)
+    # > {"type": "create_task", "weight": "123456", "max_iteration": 100, "sample": 1}
+
+    data = {'type': 'create_task', 'max_iteration': 100, 'sample': 0.5, 'weight': '12346'}
+    e = InitMsg(**data)
+    print(e)

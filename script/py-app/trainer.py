@@ -10,6 +10,7 @@ import io, os
 import ipfshttpclient
 import time
 import thread_handler as th
+from messages import AggregateMsg, UpdateMsg
 
 from utils import *
 
@@ -45,14 +46,13 @@ def train(logger, dbHandler, bmodel, _round, sender, dataloader, device="GPU"):
     #     model.cpu()
     #
     # dbres = dbHandler.add(fullmodel2base64(model))
+    UpdateMsg.set_cid(0)
 
-    res = {"Round": _round,
-           "Weight": "dbres",
-           "Cid": 0,
-           # "Cid": os.environ.get('ID'),
-           }
+    result = UpdateMsg()
+    result.set_round()
+    result.set_weight("models")
     # time.sleep(3)
-    send_result = sender.sendupdate(res)
+    send_result = sender.send(result.json_serialize())
     logger.info("Train done")
     return send_result
 

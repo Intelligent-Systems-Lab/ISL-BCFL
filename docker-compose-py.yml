@@ -101,6 +101,71 @@ services:
       networks:
         localnet:
           ipv4_address: 172.168.10.53
+##################################################
+  abci0:
+      image: tony92151/py-abci
+      container_name: abci0
+      user: root
+      environment:
+        - MODE=abci
+        - DATASET=emnist
+      volumes:
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+        - ./data:/mountdata
+      entrypoint: /bin/bash
+      command: /root/entrypoint-py.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.54
+  abci1:
+      image: tony92151/py-abci
+      container_name: abci1
+      user: root
+      environment:
+        - MODE=abci
+        - DATASET=emnist
+      volumes:
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+        - ./data:/mountdata
+      entrypoint: /bin/bash
+      command: /root/entrypoint-py.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.55
+  abci2:
+      image: tony92151/py-abci
+      container_name: abci2
+      user: root
+      environment:
+        - MODE=abci
+        - DATASET=emnist
+      volumes:
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+        - ./data:/mountdata
+      entrypoint: /bin/bash
+      command: /root/entrypoint-py.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.56
+  abci3:
+      image: tony92151/py-abci
+      container_name: abci3
+      user: root
+      environment:
+        - MODE=abci
+        - DATASET=emnist
+      volumes:
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+        - ./data:/mountdata
+      entrypoint: /bin/bash
+      command: /root/entrypoint-py.sh
+      networks:
+        localnet:
+          ipv4_address: 172.168.10.57
 
 ##################################################
   nodes:

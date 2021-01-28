@@ -61,15 +61,13 @@ class SimpleBCFL(BaseApplication):
         If not an order, a non-zero code is returned and the tx
         will be dropped.
         """
-        log.info("Got ChectTx : {}".format(tx))
-
-        data = eval(tx.decode())
-        log.info(data)
-        log.info(type(data))
-        # if not self.controller.tx_checker(data):
-        #     return ResponseCheckTx(code=1)  # reject code != 0
+        log.info("Got ChectTx  {}".format(tx))
+        value = eval(tx.decode())
+        log.info(value)
+        if not self.controller.tx_checker(value):
+            return ResponseCheckTx(code=1)  # reject code != 0
         log.info("Check ok")
-        log.info("Check ok")
+        # log.info("Check ok")
         # log.info("Check ok")
         # log.info("Check ok")
 
@@ -83,10 +81,12 @@ class SimpleBCFL(BaseApplication):
         """Simply increment the state"""
         # value = decode_number(tx)
         # self.txCount += 1
-        log.info("Got DeliverTx {}, so txCount increase to {}".format(tx))
-        data = eval(tx.decode())
+        # log.info("Got DeliverTx {}, so txCount increase to {}".format(tx))
+        log.info("Got DeliverTx  {}".format(tx))
+        value = eval(tx.decode())
+        log.info(value)
 
-        # self.controller.tx_manager(data)
+        self.controller.tx_manager(value)
         log.info("Delivery ok")
 
         return ResponseDeliverTx(code=CodeTypeOk)
@@ -110,7 +110,7 @@ if __name__ == '__main__':
     parser.add_argument('-dataset', type=str, default=None, help='Path to dataset')
     args = parser.parse_args()
 
-    newsender = sender()
+    newsender = sender(log, url_="http://node0:26657")
     newdb = moddb("ipfs")
     newagg = aggregator(log, newdb, newsender)
     newtrain = trainer(log, args.dataset, newdb, newsender)

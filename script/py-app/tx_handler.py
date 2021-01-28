@@ -2,7 +2,6 @@ import base64
 
 import requests
 import json
-from utils import Upper_TX_formater, Lower_TX_formater
 
 data = {"round": 0,
         "weight": "$IPFSMOD",
@@ -33,17 +32,17 @@ exampleupdate = {"Round": 0,
 
 
 class tx:
-    def __init__(self, url_="http://172.17.0.3:26657"):
+    def __init__(self, logger, url_="http://172.17.0.3:26657"):
+        self.logger = logger
         self.url = url_
         self.headers = {'content-type': 'application/json'}
 
     def send(self, data_) -> str:
         payload_ = exampleTX.copy()
-        data_ = json.dumps(Upper_TX_formater(eval(data_)))
         tx_ = base64.b64encode(data_.encode()).decode()
-        print("tx: ", tx_)
+        self.logger.info("tx: " + str(tx_))
         payload_['params'] = [tx_]
-        print("payload: ", json.dumps(payload_))
+        self.logger.info("payload: " + str(json.dumps(payload_)))
         response = requests.post(self.url, data=json.dumps(payload_), headers=self.headers)
         return response
 

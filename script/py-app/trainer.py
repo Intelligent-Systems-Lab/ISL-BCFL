@@ -49,9 +49,10 @@ def train(logger, dbHandler, bmodel, _round, sender, dataloader, device="GPU"):
     UpdateMsg.set_cid(0)
 
     result = UpdateMsg()
-    result.set_round()
+    result.set_round(_round)
     result.set_weight("models")
     # time.sleep(3)
+    logger.info("Train send")
     send_result = sender.send(result.json_serialize())
     logger.info("Train done")
     return send_result

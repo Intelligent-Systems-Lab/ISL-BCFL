@@ -44,20 +44,21 @@ then
 
     sed -i 's#laddr = "tcp://127.0.0.1:26657"#laddr = "tcp://0.0.0.0:26657"#'  $TMHOME/config/config.toml
     echo "Start"
-    python /root/py-app/bcfl.py -dataset $DATAPATH  &
+    python /root/py-app/bcfl.py -dataset $DATAPATH &
 
     tendermint node --home $TMHOME --proxy_app "tcp://localhost:26658"
 
 else 
-    sleep 2
-    rm -r /root/.tendermint
-    tendermint init
-    rm /root/.tendermint/config/config.toml
-    rm /root/.tendermint/config/genesis.json
-    cp /tenconfig/mytestnet/node0/config/config.toml /root/.tendermint/config
-    cp /tenconfig/mytestnet/node0/config/genesis.json /root/.tendermint/config
+    # sleep 2
+    # rm -r /root/.tendermint
+    # tendermint init
+    # rm /root/.tendermint/config/config.toml
+    # rm /root/.tendermint/config/genesis.json
+    # cp /tenconfig/mytestnet/node0/config/config.toml /root/.tendermint/config
+    # cp /tenconfig/mytestnet/node0/config/genesis.json /root/.tendermint/config
 
-    NODEID=$(python -c 'import random; print(random.randint(1,100000))')
-    sed -i "s#moniker = \"node0\"#moniker = \"node$NODEID\"#"  /root/.tendermint/config/config.toml
-    tendermint node --proxy_app kvstore
+    # NODEID=$(python -c 'import random; print(random.randint(1,100000))')
+    # sed -i "s#moniker = \"node0\"#moniker = \"node$NODEID\"#"  /root/.tendermint/config/config.toml
+    # tendermint node --proxy_app kvstore
+    python /root/py-app/bcfl.py -dataset $DATAPATH 
 fi

@@ -1,14 +1,13 @@
 from messages import AggregateMsg, UpdateMsg, InitMsg
 import json
-from utils import Upper_TX_formater, Lower_TX_formater
 
 
 class state:
-    def __init__(self, round_, agg_weight, base_result, incoming_model):
-        self.round = round_  # this round
-        self.agg_weight = agg_weight  # last round's incoming-models that aggregate to new base-model
-        self.base_result = base_result  # base-model that aggregate from last round's incoming-models
-        self.incoming_model = incoming_model  # collection from this round
+    def __init__(self, round_, agg_weight, base_result):
+        self.round = round_                 # this round
+        self.agg_weight = agg_weight        # last round's incoming-models that aggregate to new base-model
+        self.base_result = base_result      # base-model that aggregate from last round's incoming-models
+        self.incoming_model = []            # collection from this round
 
     def json(self):
         return self.__dict__
@@ -24,14 +23,12 @@ class State_controller:
         self.threshold = threshold
 
     def tx_manager(self, tx):
-        # tx = Lower_TX_formater(tx)
-        self.logger(str(tx))
+        # self.logger(str(tx))
         if tx["type"] == "aggregation":
             data = AggregateMsg(**tx)
             self.states.append(state(round_=data.get_round(),
                                      agg_weight=data.get_weight(),
-                                     base_result=data.get_result(),
-                                     incoming_model=data.get_weight()))
+                                     base_result=data.get_result()))
             self.trainer.trainRun(data.get_result(), data.get_round())
             self.logger.info("round ++")
 
@@ -44,13 +41,12 @@ class State_controller:
 
         elif tx["type"] == "create_task":
             data = InitMsg(**tx)
-            self.states.append(state(round_=data.get_round(),
+            self.states.append(state(round_=0,
                                      agg_weight=[],
-                                     base_result=data.get_weight(),
-                                     incoming_model=data.get_weight()))
+                                     base_result=data.get_weight()))
+            self.trainer.trainRun(data.get_weight(), 0)
 
     def tx_checker(self, tx) -> bool:
-        # tx = Lower_TX_formater(tx)
         self.logger.info(tx)
         try:
             if tx["type"] == "aggregation":

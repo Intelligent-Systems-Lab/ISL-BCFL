@@ -20,6 +20,7 @@ from trainer import trainer
 from db import db as moddb
 from tx_handler import tx as sender
 from state_controller import State_controller
+from utils import Model
 
 log = util.get_logger()
 

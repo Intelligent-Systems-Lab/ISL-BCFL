@@ -52,7 +52,7 @@ class MNISTDataset(Dataset):
 
 
 def getdataloader(dset='./mnist_test.csv', batch=256):
-    # print(dset)
+    print("Dataset at : {}".format(dset))
     train = pd.read_csv(dset)
 
     train_labels = train['label'].values

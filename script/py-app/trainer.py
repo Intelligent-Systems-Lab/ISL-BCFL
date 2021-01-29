@@ -13,6 +13,7 @@ import thread_handler as th
 from messages import AggregateMsg, UpdateMsg
 
 from utils import *
+import random
 
 
 def train(logger, dbHandler, bmodel, _round, sender, dataloader, device="GPU"):
@@ -50,7 +51,8 @@ def train(logger, dbHandler, bmodel, _round, sender, dataloader, device="GPU"):
 
     result = UpdateMsg()
     result.set_round(_round)
-    result.set_weight("models")
+    result.set_weight(str(random.randint(0, 100000000)))
+    result.set_cid(os.getenv("ID"))
     # time.sleep(3)
     logger.info("Train send")
     send_result = sender.send(result.json_serialize())

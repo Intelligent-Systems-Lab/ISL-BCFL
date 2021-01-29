@@ -17,7 +17,7 @@ import io, os
 import ipfshttpclient
 import thread_handler as th
 from messages import AggregateMsg, UpdateMsg
-
+import random
 from utils import *
 
 
@@ -51,9 +51,9 @@ def aggergate(logger, dbHandler, models, _round, sender):
 
     result = AggregateMsg()
     result.set_round(_round+1)
-    result.set_weight(["models"])
-    result.set_result("dbres")
-
+    result.set_weight(models)
+    result.set_result(str(random.randint(0, 100000000)))
+    result.set_cid(os.getenv("ID"))
     send_result = sender.send(result.json_serialize())
     logger.info("Agg done")
     return send_result

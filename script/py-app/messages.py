@@ -9,8 +9,8 @@ class BaseMsg:
 
     def __init__(self, **kwargs):
         self._type = kwargs["type"] if "type" in kwargs else BaseMsg.__msg_type
-        self._cid = kwargs["cid"] if "cid" in kwargs else UpdateMsg.__msg_cid
-        self._round = kwargs["round"] if "task" in kwargs else UpdateMsg.__msg_round
+        self._cid = kwargs["cid"] if "cid" in kwargs else BaseMsg.__msg_cid
+        self._round = kwargs["round"] if "round" in kwargs else BaseMsg.__msg_round
 
     def get_type(self):
         return self._type
@@ -40,7 +40,6 @@ class BaseMsg:
 
 
 class UpdateMsg(BaseMsg):
-    __msg_round = 0
     __msg_weight = ""
 
     def __init__(self, **kwargs):
@@ -147,7 +146,7 @@ class InitMsg:
         output = {}
         data = self.__dict__
         for k, v in data.items():
-            output[k[1:]] = v       # remove "_" before key
+            output[k[1:]] = v  # remove "_" before key
         return json.dumps(output)
 
     def json_serialize(self):
@@ -180,3 +179,8 @@ if __name__ == "__main__":
     data = {'type': 'create_task', 'max_iteration': 100, 'sample': 0.5, 'weight': '12346'}
     e = InitMsg(**data)
     print(e)
+
+    f = {"type": "aggregation", "cid": "3", "round": 1, "weight": ["83239157", "43887821", "38935139", "33500173"],
+         "result": "52071330"}
+    g = AggregateMsg(**f)
+    print(g.json_serialize())

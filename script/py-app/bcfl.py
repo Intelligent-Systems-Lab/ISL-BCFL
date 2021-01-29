@@ -63,7 +63,7 @@ class SimpleBCFL(BaseApplication):
         """
         log.info("Got ChectTx  {}".format(tx))
         value = eval(tx.decode())
-        log.info(value)
+        # log.info(value)
         if not self.controller.tx_checker(value):
             return ResponseCheckTx(code=1)  # reject code != 0
         log.info("Check ok")
@@ -84,7 +84,7 @@ class SimpleBCFL(BaseApplication):
         # log.info("Got DeliverTx {}, so txCount increase to {}".format(tx))
         log.info("Got DeliverTx  {}".format(tx))
         value = eval(tx.decode())
-        log.info(value)
+        # log.info(value)
 
         self.controller.tx_manager(value)
         log.info("Delivery ok")

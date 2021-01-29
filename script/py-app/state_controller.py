@@ -30,7 +30,7 @@ class State_controller:
             self.logger.info(">> {}".format(data.json_serialize()))
             if self.get_last_round() == data.get_round():
                 self.logger.info("Get round : {} ".format(data.get_round()))
-                self.logger.info("round exist, now ay round : {} ".format(self.get_last_round()))
+                self.logger.info("round exist, now at round : {} ".format(self.get_last_round()))
                 return
 
             state_data = state(round_=data.get_round(),

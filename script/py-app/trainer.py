@@ -22,6 +22,7 @@ def train(logger, dbHandler, bmodel, _round, sender, dataloader, device="GPU"):
     logger.info("Train start2")
     try:
         logger.info("Train start3")
+        print(type(dbHandler.cat(bmodel)))
         model = base642fullmodel(dbHandler.cat(bmodel))
         # logger.info("ipfs success : {}".format(model[:20]))
     except KeyboardInterrupt:
@@ -55,12 +56,12 @@ def train(logger, dbHandler, bmodel, _round, sender, dataloader, device="GPU"):
 
     dbres = dbHandler.add(fullmodel2base64(model))
     logger.info("Train model result")
-    UpdateMsg.set_cid(0)
+    UpdateMsg.set_cid(os.getenv("ID"))
 
     result = UpdateMsg()
     result.set_round(_round)
     result.set_weight(dbres)
-    result.set_cid(os.getenv("ID"))
+    # result.set_cid(os.getenv("ID"))
     # time.sleep(3)
     logger.info("Train send")
     send_result = sender.send(result.json_serialize())
@@ -73,6 +74,7 @@ class trainer:
         self.logger = logger
         # self.dataset = dataset  # path to dataset
         self.devices = devices
+        self.logger.info("Use : {}".format(self.devices))
         self.batchsize = batchsize
         self.dbHandler = dbHandler
         self.logger.info("Load dataset...")

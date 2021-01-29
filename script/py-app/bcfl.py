@@ -109,12 +109,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', type=int, default=26658, help='Proxy app port')
     parser.add_argument('-dataset', type=str, default=None, help='Path to dataset')
+    parser.add_argument('-device', type=str, default="CPU", help='Device')
     args = parser.parse_args()
 
     newsender = sender(log, url_="http://node0:26657")
     newdb = moddb("ipfs")
     newagg = aggregator(log, newdb, newsender)
-    newtrain = trainer(log, args.dataset, newdb, newsender)
+    newtrain = trainer(log, args.dataset, newdb, newsender, devices=args.device)
 
     newcontroller = State_controller(log, newtrain, newagg, 4)
 

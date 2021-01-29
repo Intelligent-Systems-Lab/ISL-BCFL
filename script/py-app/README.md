@@ -15,9 +15,15 @@ rm -r abci-0.6.1 abci-0.6.1.tar.gz
 
 ## docker-compose run
 ```bash=
+# CPU:
 docker-compose -f ./docker-compose-py.yml up ipfsA node0 node1 node2 node3
 
 docker-compose -f ./docker-compose-py.yml down -v
+
+# GPU
+docker-compose -f ./docker-compose-pygpu.yml up ipfsA node0 node1 node2 node3
+
+docker-compose -f ./docker-compose-pygpu.yml down -v
 ```
 
 

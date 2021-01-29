@@ -23,7 +23,7 @@ from utils import *
 
 def aggergate(logger, dbHandler, models, _round, sender):
     logger.info("Agg start")
-    logger.info("Len of models : ", len(models))
+    logger.info("Len of models : {}".format(len(models)))
     model_list = []
     for m in models:
         model = Model()
@@ -47,13 +47,13 @@ def aggergate(logger, dbHandler, models, _round, sender):
 
     dbres = dbHandler.add(fullmodel2base64(new_model))
 
-    AggregateMsg.set_cid(0)
+    AggregateMsg.set_cid(os.getenv("ID"))
 
     result = AggregateMsg()
     result.set_round(_round+1)
     result.set_weight(models)
     result.set_result(dbres)
-    result.set_cid(os.getenv("ID"))
+    # result.set_cid(os.getenv("ID"))
     send_result = sender.send(result.json_serialize())
     logger.info("Agg done")
     return send_result

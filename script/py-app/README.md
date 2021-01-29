@@ -23,7 +23,11 @@ docker-compose -f ./docker-compose-py.yml down -v
 
 ## Send create-task TX
 ```bash=
-IPFSMOD=$(ipfs --api /ip4/0.0.0.0/tcp/5001 add ./firstMOD.txt -q)
+# create new model
+docker run --rm -it -v $(pwd):/root/:z tony92151/ipfs-alpine python3 /root/utils.py /root/FIRSTMOD.txt
+# sudo chown $(whoami)  FIRSTMOD.txt
+
+IPFSMOD=$(ipfs --api /ip4/0.0.0.0/tcp/5001 add ./FIRSTMOD.txt -q)
 echo $IPFSMOD
 
 

@@ -102,3 +102,9 @@ class Model(nn.Module):
 
         return x
 
+
+if __name__ == "__main__":
+    with open(sys.argv[1], "w") as file:
+        file.write(fullmodel2base64(Model()))
+
+

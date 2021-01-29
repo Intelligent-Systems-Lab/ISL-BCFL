@@ -19,4 +19,4 @@ class ipfs:
         return self.client.add_str(data)
 
     def cat(self, data):
-        return self.client.cat(data)
+        return self.client.cat(data).decode()

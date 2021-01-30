@@ -19,6 +19,7 @@ import thread_handler as th
 from messages import AggregateMsg, UpdateMsg
 import random
 from utils import *
+from models.eminst_model import *
 
 
 def aggergate(logger, dbHandler, models, _round, sender):
@@ -74,3 +75,9 @@ class aggregator:
         rou = modtx["Round"]
         wei = modtx["Weight"]
         return True
+
+    def aggergate_manager(self, txmanager, tx):
+        if tx["type"] == "update" and len(txmanager.get_incoming_model()) >= txmanager.threshold:
+            self.aggergateRun(txmanager.get_incoming_model(), txmanager.get_last_round())
+        else:
+            return

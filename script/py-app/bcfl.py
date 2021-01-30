@@ -68,10 +68,6 @@ class SimpleBCFL(BaseApplication):
         if not self.controller.tx_checker(value):
             return ResponseCheckTx(code=1)  # reject code != 0
         log.info("Check ok")
-        # log.info("Check ok")
-        # log.info("Check ok")
-        # log.info("Check ok")
-
         # if data["Type"] == "aggregation":
         #     if self.aggregator.aggergateCheck(data["weight"]):
         #         return ResponseCheckTx(code=CodeTypeOk)

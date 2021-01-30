@@ -13,28 +13,26 @@ import thread_handler as th
 from messages import AggregateMsg, UpdateMsg
 
 from utils import *
+from models.eminst_model import *
 import random
 
 
 def train(logger, dbHandler, bmodel, _round, sender, dataloader, device="GPU"):
-    logger.info("Train start1")
     model = Model()
-    logger.info("Train start2")
     try:
-        logger.info("Train start3")
-        print(type(dbHandler.cat(bmodel)))
+        #print(type(dbHandler.cat(bmodel)))
         model = base642fullmodel(dbHandler.cat(bmodel))
         # logger.info("ipfs success : {}".format(model[:20]))
     except KeyboardInterrupt:
         logger.info("ipfs fail")
-    logger.info("Train model resolved")
+    # logger.info("Train model resolved")
     optimizer = optim.RMSprop(model.parameters(), lr=0.001)
     loss_function = nn.CrossEntropyLoss()
     if device == "GPU":
         model.cuda()
 
     model.train()
-    logger.info("Train model dataloader")
+    # logger.info("Train model dataloader")
     for data, target in dataloader:
         if device == "GPU":
             data = data.cuda()
@@ -55,7 +53,7 @@ def train(logger, dbHandler, bmodel, _round, sender, dataloader, device="GPU"):
         model.cpu()
 
     dbres = dbHandler.add(fullmodel2base64(model))
-    logger.info("Train model result")
+    # logger.info("Train model result")
     UpdateMsg.set_cid(os.getenv("ID"))
 
     result = UpdateMsg()
@@ -92,6 +90,14 @@ class trainer:
                                   self.devices))
         t.start()
         self.logger.info("Run done")
+    
+    def train_manager(self, txmanager, tx):
+        if tx["type"] == "aggregation" or tx["type"] == "create_task":
+            self.trainRun(txmanager.get_last_base_model(), txmanager.get_last_round())
+        else:
+            return
+            
+
 
     # def trainRun(self, bmodel):
     #     print("Run train")

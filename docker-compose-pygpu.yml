@@ -143,6 +143,16 @@ services:
       networks:
         localnet:
   ##################################################
+  tshark:
+      image: alpine:3.13
+      container_name: tshark
+      volumes:
+        # - ./ipfskey:/data/ipfs/ 
+        - ./network:/root
+        # - ipfscon:/ipfscon
+      entrypoint: /bin/sh
+      command: /root/networkentrypoint.sh
+      network_mode: "host"
 
 volumes:
     tenconfig:
@@ -150,10 +160,11 @@ volumes:
 
 networks:
   localnet:
-    #driver: bridge
+    driver: bridge
     ipam:
-      #driver: default
+      driver: default
       config:
-      -
-        subnet: 172.168.10.0/24
+      - subnet: 172.168.10.0/24
         #gateway: 172.168.10.1
+    driver_opts:
+      com.docker.network.bridge.name: bcfl

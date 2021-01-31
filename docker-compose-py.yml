@@ -39,6 +39,7 @@ services:
         - MODE=core
         - ID=0
         - DATASET=emnist
+        - DEVICES=CPU
       volumes: 
         - tenconfig:/tenconfig:z
         - ./script:/root:z
@@ -56,6 +57,7 @@ services:
         - MODE=core
         - ID=1
         - DATASET=emnist
+        - DEVICES=CPU
       volumes:
         - tenconfig:/tenconfig:z
         - ./script:/root:z
@@ -74,6 +76,7 @@ services:
         - MODE=core
         - ID=2
         - DATASET=emnist
+        - DEVICES=CPU
       volumes:
         - tenconfig:/tenconfig:z
         - ./script:/root:z
@@ -92,6 +95,7 @@ services:
         - MODE=core
         - ID=3
         - DATASET=emnist
+        - DEVICES=CPU
       volumes:
         - tenconfig:/tenconfig:z
         - ./script:/root:z
@@ -118,55 +122,6 @@ services:
       networks:
         localnet:
           ipv4_address: 172.168.10.54
-  abci1:
-      image: tony92151/py-abci
-      container_name: abci1
-      user: root
-      environment:
-        - MODE=abci
-        - DATASET=emnist
-      volumes:
-        - tenconfig:/tenconfig:z
-        - ./script:/root:z
-        - ./data:/mountdata
-      entrypoint: /bin/bash
-      command: /root/entrypoint-py.sh
-      networks:
-        localnet:
-          ipv4_address: 172.168.10.55
-  abci2:
-      image: tony92151/py-abci
-      container_name: abci2
-      user: root
-      environment:
-        - MODE=abci
-        - DATASET=emnist
-      volumes:
-        - tenconfig:/tenconfig:z
-        - ./script:/root:z
-        - ./data:/mountdata
-      entrypoint: /bin/bash
-      command: /root/entrypoint-py.sh
-      networks:
-        localnet:
-          ipv4_address: 172.168.10.56
-  abci3:
-      image: tony92151/py-abci
-      container_name: abci3
-      user: root
-      environment:
-        - MODE=abci
-        - DATASET=emnist
-      volumes:
-        - tenconfig:/tenconfig:z
-        - ./script:/root:z
-        - ./data:/mountdata
-      entrypoint: /bin/bash
-      command: /root/entrypoint-py.sh
-      networks:
-        localnet:
-          ipv4_address: 172.168.10.57
-
 ##################################################
   nodes:
       image: tony92151/py-abci
@@ -182,6 +137,16 @@ services:
       networks:
         localnet:
   ##################################################
+  tshark:
+      image: alpine:3.13
+      container_name: tshark
+      volumes:
+        # - ./ipfskey:/data/ipfs/ 
+        - ./network:/root
+        # - ipfscon:/ipfscon
+      entrypoint: /bin/sh
+      command: /root/networkentrypoint.sh
+      network_mode: "host"
 
 volumes:
     tenconfig:
@@ -189,10 +154,11 @@ volumes:
 
 networks:
   localnet:
-    #driver: bridge
+    driver: bridge
     ipam:
-      #driver: default
+      driver: default
       config:
-      -
-        subnet: 172.168.10.0/24
+      - subnet: 172.168.10.0/24
         #gateway: 172.168.10.1
+    driver_opts:
+      com.docker.network.bridge.name: bcfl

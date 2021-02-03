@@ -80,7 +80,7 @@ class trainer:
         # self.dataloader = None
         self.sender = sender
 
-    def trainRun(self, bmodel_, round_):
+    def train_run(self, bmodel_, round_):
         t = th.create_job(train, (self.logger,
                                   self.dbHandler,
                                   bmodel_,
@@ -93,7 +93,10 @@ class trainer:
     
     def train_manager(self, txmanager, tx):
         if tx["type"] == "aggregation" or tx["type"] == "create_task":
-            self.trainRun(txmanager.get_last_base_model(), txmanager.get_last_round())
+            if not tx["cid"] == hash(txmanager.get_last_base_model + str(txmanager.states[-1].selection_nonce))%num_of_validator:
+                return
+            self.train_run(txmanager.get_last_base_model(), txmanager.get_last_round())
+            txmanager.aggregation_lock = False
         else:
             return
             

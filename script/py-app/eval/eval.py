@@ -60,6 +60,7 @@ def local_training(dataloder, device="CPU"):
     model.train()
     models = []
     for i in tqdm(range(100)):
+        models.append(model.cpu())
         #print("E : ", i)
         running_loss = 0
         for data, target in dataloder:
@@ -76,7 +77,7 @@ def local_training(dataloder, device="CPU"):
             running_loss += loss.item()
         if device == "GPU":
             model.cpu()
-        models.append(model.cpu())
+        # models.append(model.cpu())
     return models
 
 
@@ -87,7 +88,7 @@ if __name__ == "__main__":
     parser.add_argument('-dataset', type=str, default=None, help='Path to dataset folder')
     parser.add_argument('-result', type=str, default=None, help='Path to json result')
     parser.add_argument('-output', type=str, default=None, help='Output path')
-    parser.add_argument('-ipfsaddr', type=str, default="/ip4/172.168.10.10/tcp/5001/", help='ipfs address')
+    parser.add_argument('-ipfsaddr', type=str, default="/ip4/140.113.164.150/tcp/5001/", help='ipfs address')
     args = parser.parse_args()
 
     

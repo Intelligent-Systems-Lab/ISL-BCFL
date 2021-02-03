@@ -66,18 +66,24 @@ class aggregator:
         self.dbHandler = dbHandler
         self.sender = sender
 
-    def aggergateRun(self, bmodels, round_):
+    def aggergate_run(self, bmodels, round_):
         t = th.create_job(aggergate, (self.logger, self.dbHandler, bmodels, round_, self.sender))
         t.start()
         self.logger.info("Run Agg")
 
-    def aggergateCheck(self, modtx) -> bool:
+    def aggergate_check(self, modtx) -> bool:
         rou = modtx["Round"]
         wei = modtx["Weight"]
         return True
 
     def aggergate_manager(self, txmanager, tx):
-        if tx["type"] == "update" and len(txmanager.get_incoming_model()) >= txmanager.threshold:
-            self.aggergateRun(txmanager.get_incoming_model(), txmanager.get_last_round())
+        if tx["type"] == "aggregate_again" or (tx["type"] == "update" and len(txmanager.get_incoming_model()) >= txmanager.threshold):
+            txmanager.aggregation_lock = True
+            if self.aggregator_selection(txmanager, txmanager.states[-1].selection_nonce) == os.getenv("ID"):
+                self.aggergate_run(txmanager.get_incoming_model(), txmanager.get_last_round())
         else:
             return
+
+    def aggregator_selection(self, txmanager, nonce = 0, num_of_validator = 4):
+        return hash(txmanager.get_last_base_model + str(nonce))%num_of_validator
+

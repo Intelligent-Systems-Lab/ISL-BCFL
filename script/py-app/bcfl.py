@@ -13,6 +13,7 @@ from abci import (
     ResponseQuery,
     ResponseCommit,
     CodeTypeOk,
+    ResponseEndBlock,
 )
 
 from aggregator import aggregator
@@ -98,6 +99,15 @@ class SimpleBCFL(BaseApplication):
         log.info("Got Commit")
         hash = struct.pack('>Q', self.txCount)
         return ResponseCommit(data=hash)
+
+    # def begin_block(self, req) -> ResponseBeginBlock:
+    #     # https://pkg.go.dev/github.com/tendermint/tendermint@v0.34.3/proto/tendermint/types#Header
+    #     last_hash = req.Header.LastCommitHash
+    #     log.info("Last hash  {}".format(last_hash))
+    #     return ResponseBeginBlock()
+    def end_block(self, req) -> ResponseEndBlock:
+        self.controller.tx_manager(None)
+        return ResponseEndBlock()
 
 
 if __name__ == '__main__':

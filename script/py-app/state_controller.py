@@ -3,11 +3,16 @@ import json, os
 
 
 class state:
-    def __init__(self, round_, agg_weight, base_result):
+    def __init__(self, round_, agg_weight, base_result, selected_aggregator=""):
         self.round = round_  # this round
         self.agg_weight = agg_weight  # last round's incoming-models that aggregate to new base-model
         self.base_result = base_result  # base-model that aggregate from last round's incoming-models
         self.incoming_model = []  # collection from this round
+        self.selected_aggregator = selected_aggregator
+        self.selection_nonce = 0
+        self.aggregation_timeout = 3 # 3 block
+        self.aggregation_timeout_count = 0
+        self.number_of_validator = 4
 
     def json(self):
         return json.dumps(self.__dict__)
@@ -25,46 +30,60 @@ class State_controller:
         self.max_iteration = 50
         self.is_saved = False
 
-    def tx_manager(self, tx):
-        # self.logger(str(tx))
-        if not self.task_state():
+        self.aggregation_lock = False
+
+    def aggregate_pipe(self, tx):
+        data = AggregateMsg(**tx)
+        if self.get_last_round() == data.get_round():
+            self.logger.info("Get round : {} ".format(data.get_round()))
+            self.logger.info("round exist, now at round : {} ".format(self.get_last_round()))
             return
-        if tx["type"] == "aggregation":
-            data = AggregateMsg(**tx)
-            if self.get_last_round() == data.get_round():
-                self.logger.info("Get round : {} ".format(data.get_round()))
-                self.logger.info("round exist, now at round : {} ".format(self.get_last_round()))
-                return
 
-            state_data = state(round_=data.get_round(),
-                               agg_weight=data.get_weight(),
-                               base_result=data.get_result())
-            self.states.append(eval(state_data.json()))
-            # self.trainer.trainRun(self.get_last_base_model(), self.get_last_round())
-            # self.logger.info("round ++")
+        state_data = state(round_=data.get_round(),
+                           agg_weight=data.get_weight(),
+                           base_result=data.get_result())
+        self.states.append(eval(state_data.json()))
 
-        elif tx["type"] == "update":
-            data = UpdateMsg(**tx)
-            if self.get_last_round() == data.get_round():
-                self.append_incoming_model(data.get_weight())
-                self.logger.info("Get incoming model, round: {}, total: {}".format(self.get_last_round(),
-                                                                                   len(self.get_incoming_model())))
-                # if len(self.get_incoming_model()) >= self.threshold:
-                #     self.aggregator.aggergateRun(self.get_incoming_model(), self.get_last_round())
+    def update_pipe(self, tx):
+        data = UpdateMsg(**tx)
+        if self.get_last_round() == data.get_round():
+            self.append_incoming_model(data.get_weight())
+            self.logger.info("Get incoming model, round: {}, total: {}".format(self.get_last_round(),
+                                                                               len(self.get_incoming_model())))
 
-        elif tx["type"] == "create_task":
-            data = InitMsg(**tx)
-            state_data = state(round_=0,
-                               agg_weight=[],
-                               base_result=data.get_weight())
-            self.states.append(eval(state_data.json()))
-            self.logger.info("round ++")
-            self.trainer.trainRun(data.get_weight(), 0)
-            self.max_iteration = data.get_max_iteration()
-            self.logger.info("Max iteration: {}".format(data.get_max_iteration()))
+    def create_task_pipe(self, tx):
+        data = InitMsg(**tx)
+        state_data = state(round_=0,
+                           agg_weight=[],
+                           base_result=data.get_weight())
+        self.states.append(eval(state_data.json()))
+        self.trainer.train_run(data.get_weight(), 0)
+        self.max_iteration = data.get_max_iteration()
+        self.logger.info("Max iteration: {}".format(data.get_max_iteration()))
 
-        self.trainer.train_manager(txmanager = self, tx = tx)
-        self.aggregator.aggergate_manager(txmanager = self, tx = tx)
+    def pipes(self, type_):
+        dis = {"create_task": self.create_task_pipe, "aggregation": self.aggregate_pipe, "update": self.update_pipe}
+        return dis[type_]
+
+    #######################################################
+    def tx_manager(self, tx):
+        if tx == None and self.aggregation_lock:
+            self.states[-1].aggregation_timeout_count += 1
+            if self.states[-1].aggregation_timeout_count >= self.states[-1].aggregation_timeout:
+                self.states[-1].aggregation_timeout_count = 0
+                self.states[-1].selection_nonce += 1
+                self.aggregator.aggergate_manager(txmanager=self, tx={"type": "aggregate_again"})
+            return
+
+        if not self.task_end_check():
+            return
+
+        self.pipes(tx["type"])(tx)
+
+
+
+        self.trainer.train_manager(txmanager=self, tx=tx)
+        self.aggregator.aggergate_manager(txmanager=self, tx=tx)
 
     def tx_checker(self, tx) -> bool:
         # self.logger.info(tx)
@@ -84,16 +103,16 @@ class State_controller:
 
     def get_last_round(self):
         try:
-            round_ = self.states[-1]["round"] # init state have no element
+            round_ = self.states[-1]["round"]  # init state have no element
         except:
-            round_  = -1 
+            round_ = -1
         return round_
 
     def get_last_base_model(self):
         try:
-            state_ = self.states[-1]["base_result"] # init state have no element
+            state_ = self.states[-1]["base_result"]  # init state have no element
         except:
-            state_  = ""
+            state_ = ""
         return state_
 
     def append_incoming_model(self, value):
@@ -102,13 +121,25 @@ class State_controller:
     def get_incoming_model(self):
         return self.states[-1]["incoming_model"]
 
-    def task_state(self) -> bool:
+    def get_last_nonce(self):
+        try:
+            return self.states[-1]["selection_nonce"]
+        except:
+            return 0
+
+    def set_last_nonce(self, value):
+        try:
+            self.states[-1]["selection_nonce"] = value
+        except:
+            pass
+
+    def task_end_check(self) -> bool:
         # self.logger.info(">>>>>>>> {}".format(len(self.states)))
         # self.logger.info(">>>>>>>> {}".format(self.get_last_round()))
         if len(self.states) >= self.max_iteration and self.get_last_round() >= self.max_iteration - 1:
             if not self.is_saved:
-                result = {"data":self.states}
-                with open('/root/py-app/{}_round_result_'.format(self.max_iteration) + os.getenv("ID") +'.json', 'w') as outfile:
+                result = {"data": self.states}
+                with open('/root/py-app/{}_round_result_{}.json'.format(self.max_iteration, os.getenv("ID")), 'w') as outfile:
                     json.dump(result, outfile, indent=4)
                 self.logger.info("Save to file....")
             self.is_saved = True

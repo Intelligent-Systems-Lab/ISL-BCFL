@@ -11,17 +11,19 @@ def analysis_pcap(file_name):
     packet_pcap = pcap.read_all()
     pkt_data = []
 
-    time_start = packet_pcap[0][1].tslow
-    time_record = []
-    flow = []
-    flows = []
-    for i in packet_pcap:
+    time_start = (packet_pcap[0][1].tshigh << 32) | packet_pcap[0][1].tslow
+    time_record = [time_start]
+    flow =  [packet_pcap[0][1].wirelen]
+    flows = [packet_pcap[0][1].wirelen]
+    sum_value = packet_pcap[0][1].wirelen
+    for i in packet_pcap[1:]:
         pkt_data.append(i[0])
         flow.append(i[1].wirelen)
-        flows.append(sum(flow))
-        time_record.append(i[1].tslow)
-
-    time_record = [(i - time_start)/10 ** 4 for i in time_record]
+        sum_value += i[1].wirelen
+        flows.append(sum_value)
+        time_record.append((i[1].tshigh << 32) | i[1].tslow)
+    
+    time_record = [(t - time_start)/10 ** 4 for t in time_record]
     print("capture {} packets, {} bytes, {} mb".format(len(packet_pcap), flows[-1], flows[-1] / 10 ** 6))
     pkt_data = pkt_data[:-5]
     time_record = time_record[:-5]

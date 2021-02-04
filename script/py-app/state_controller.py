@@ -8,11 +8,11 @@ class state:
         self.agg_weight = agg_weight  # last round's incoming-models that aggregate to new base-model
         self.base_result = base_result  # base-model that aggregate from last round's incoming-models
         self.incoming_model = []  # collection from this round
-        self.selected_aggregator = selected_aggregator
         self.selection_nonce = 0
         self.aggregation_timeout = 3 # 3 block
         self.aggregation_timeout_count = 0
         self.number_of_validator = 4
+        self.aggregator_id = -1
 
     def json(self):
         return json.dumps(self.__dict__)
@@ -38,16 +38,23 @@ class State_controller:
             self.logger.info("Get round : {} ".format(data.get_round()))
             self.logger.info("round exist, now at round : {} ".format(self.get_last_round()))
             return
+        if  not str(self.get_last_state()["aggregator_id"]) == str(data.get_cid()):
+            self.logger.info("Invalid aggregate cid, the aggregator id should be {}".format(self.get_last_state()["aggregator_id"]))
+            return
 
         state_data = state(round_=data.get_round(),
                            agg_weight=data.get_weight(),
                            base_result=data.get_result())
         self.states.append(eval(state_data.json()))
+        self.aggregation_lock = False
 
     def update_pipe(self, tx):
         data = UpdateMsg(**tx)
+        # data.get_round
+        if self.aggregation_lock:
+            return
         if self.get_last_round() == data.get_round():
-            self.append_incoming_model(data.get_weight())
+            self.append_incoming_model({"model":data.get_weight(), "cid": data.get_cid()})
             self.logger.info("Get incoming model, round: {}, total: {}".format(self.get_last_round(),
                                                                                len(self.get_incoming_model())))
 
@@ -67,24 +74,24 @@ class State_controller:
 
     #######################################################
     def tx_manager(self, tx):
-        if tx == None and self.aggregation_lock:
-            self.states[-1].aggregation_timeout_count += 1
-            if self.states[-1].aggregation_timeout_count >= self.states[-1].aggregation_timeout:
-                self.states[-1].aggregation_timeout_count = 0
-                self.states[-1].selection_nonce += 1
-                self.aggregator.aggergate_manager(txmanager=self, tx={"type": "aggregate_again"})
-            return
-
         if not self.task_end_check():
             return
 
+        if tx == None and self.aggregation_lock: # Endblock : tx = None 
+            self.get_last_state()["aggregation_timeout_count"] += 1
+            if self.get_last_state()["aggregation_timeout_count"] >= self.get_last_state()["aggregation_timeout"]:
+                self.get_last_state()["aggregation_timeout_count"] = 0
+                self.get_last_state()["selection_nonce"] += 1
+                self.aggregator.aggergate_manager(txmanager=self, tx={"type": "aggregate_again"})
+            return
+        if tx == None:
+            return
         self.pipes(tx["type"])(tx)
-
-
 
         self.trainer.train_manager(txmanager=self, tx=tx)
         self.aggregator.aggergate_manager(txmanager=self, tx=tx)
 
+    #######################################################
     def tx_checker(self, tx) -> bool:
         # self.logger.info(tx)
         try:
@@ -119,7 +126,7 @@ class State_controller:
         self.states[-1]["incoming_model"].append(value)
 
     def get_incoming_model(self):
-        return self.states[-1]["incoming_model"]
+        return [i["model"] for i in self.states[-1]["incoming_model"]]
 
     def get_last_nonce(self):
         try:
@@ -132,6 +139,12 @@ class State_controller:
             self.states[-1]["selection_nonce"] = value
         except:
             pass
+
+    def get_last_state(self):
+        try:
+            return self.states[-1]
+        except:
+            return 0
 
     def task_end_check(self) -> bool:
         # self.logger.info(">>>>>>>> {}".format(len(self.states)))

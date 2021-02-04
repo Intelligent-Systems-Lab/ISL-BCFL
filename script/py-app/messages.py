@@ -24,9 +24,9 @@ class BaseMsg:
     def set_type(self, value):
         self._type = value
 
-    @classmethod
+    # @classmethod
     def set_cid(cls, value):
-        cls.__msg_cid = value
+        cls._cid = value
 
     def set_round(self, value):
         self._round = value

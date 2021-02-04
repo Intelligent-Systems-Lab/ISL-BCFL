@@ -54,9 +54,10 @@ def train(logger, dbHandler, bmodel, _round, sender, dataloader, device="GPU"):
 
     dbres = dbHandler.add(fullmodel2base64(model))
     # logger.info("Train model result")
-    UpdateMsg.set_cid(os.getenv("ID"))
+    # UpdateMsg.set_cid(os.getenv("ID"))
 
     result = UpdateMsg()
+    result.set_cid(os.getenv("ID"))
     result.set_round(_round)
     result.set_weight(dbres)
     # result.set_cid(os.getenv("ID"))
@@ -75,7 +76,6 @@ class trainer:
         self.logger.info("Use : {}".format(self.devices))
         self.batchsize = batchsize
         self.dbHandler = dbHandler
-        self.logger.info("Load dataset...")
         self.dataloader = getdataloader(dataset)
         # self.dataloader = None
         self.sender = sender
@@ -93,10 +93,16 @@ class trainer:
     
     def train_manager(self, txmanager, tx):
         if tx["type"] == "aggregation" or tx["type"] == "create_task":
-            if not tx["cid"] == hash(txmanager.get_last_base_model + str(txmanager.states[-1].selection_nonce))%num_of_validator:
-                return
-            self.train_run(txmanager.get_last_base_model(), txmanager.get_last_round())
-            txmanager.aggregation_lock = False
+            incomings = txmanager.get_last_state()["incoming_model"]
+            try:
+                cids = [i["cid"] for i in incomings]
+            except:
+                cid = []
+            if not os.getenv("ID") in cids:
+                self.logger.info("star training")
+                txmanager.aggregation_lock = False
+                self.train_run(txmanager.get_last_base_model(), txmanager.get_last_round())
+            
         else:
             return
             

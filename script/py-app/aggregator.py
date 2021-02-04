@@ -20,6 +20,7 @@ from messages import AggregateMsg, UpdateMsg
 import random
 from utils import *
 from models.eminst_model import *
+import hashlib
 
 
 def aggergate(logger, dbHandler, models, _round, sender):
@@ -48,13 +49,15 @@ def aggergate(logger, dbHandler, models, _round, sender):
 
     dbres = dbHandler.add(fullmodel2base64(new_model))
 
-    AggregateMsg.set_cid(os.getenv("ID"))
+    # AggregateMsg.set_cid(os.getenv("ID"))
 
     result = AggregateMsg()
+    result.set_cid(os.getenv("ID"))
     result.set_round(_round+1)
     result.set_weight(models)
     result.set_result(dbres)
     # result.set_cid(os.getenv("ID"))
+    time.sleep(random.randint(3,10))
     send_result = sender.send(result.json_serialize())
     logger.info("Agg done")
     return send_result
@@ -65,6 +68,7 @@ class aggregator:
         self.logger = logger
         self.dbHandler = dbHandler
         self.sender = sender
+        self.hash = hashlib.md5()
 
     def aggergate_run(self, bmodels, round_):
         t = th.create_job(aggergate, (self.logger, self.dbHandler, bmodels, round_, self.sender))
@@ -79,11 +83,23 @@ class aggregator:
     def aggergate_manager(self, txmanager, tx):
         if tx["type"] == "aggregate_again" or (tx["type"] == "update" and len(txmanager.get_incoming_model()) >= txmanager.threshold):
             txmanager.aggregation_lock = True
-            if self.aggregator_selection(txmanager, txmanager.states[-1].selection_nonce) == os.getenv("ID"):
+            self.aggregator_selection(txmanager)
+
+            if str(txmanager.get_last_state()["aggregator_id"]) == str(os.getenv("ID")):
+                self.logger.info("It's me!!!!!!!!!!!!!!!!")
                 self.aggergate_run(txmanager.get_incoming_model(), txmanager.get_last_round())
         else:
             return
 
-    def aggregator_selection(self, txmanager, nonce = 0, num_of_validator = 4):
-        return hash(txmanager.get_last_base_model + str(nonce))%num_of_validator
+    def aggregator_selection(self, txmanager):
+        self.logger.info(">>>>>>>> nonce :{}, {}".format(txmanager.get_last_state()["selection_nonce"], type(txmanager.get_last_state()["selection_nonce"])))
+        self.logger.info("hash {} + {}".format(txmanager.get_last_base_model(), str(txmanager.get_last_state()["selection_nonce"])))
+
+        self.hash.update((txmanager.get_last_base_model() + str(txmanager.get_last_state()["selection_nonce"])).encode())
+        tmpsum = 0
+        for j in self.hash.hexdigest():
+            tmpsum += ord(j)
+        txmanager.get_last_state()["aggregator_id"] = tmpsum % txmanager.get_last_state()["number_of_validator"]
+
+        self.logger.info("selection {}".format(txmanager.get_last_state()["aggregator_id"]))
 

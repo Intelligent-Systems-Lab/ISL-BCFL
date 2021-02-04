@@ -44,7 +44,7 @@ def getdataloader(dset='./mnist_test.csv', batch=256):
 
     train_set = EMNISTDataset(featuresTrain.float(), targetsTrain, transform=data_transform)
 
-    trainloader = torch.utils.data.DataLoader(train_set, batch_size=batch, shuffle=True, num_workers=4)
+    trainloader = torch.utils.data.DataLoader(train_set, batch_size=batch, shuffle=True, num_workers=2)
     return trainloader
 
 

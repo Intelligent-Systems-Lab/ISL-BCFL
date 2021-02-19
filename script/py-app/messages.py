@@ -110,7 +110,7 @@ class InitMsg:
     __msg_type = ""
     __msg_weight = ""
     __msg_max_iteration = ""
-    __msg_sample = 1
+    __msg_agg_timeout = 3
 
     def __init__(self, **kwargs):
         if not "type" in kwargs:
@@ -122,7 +122,7 @@ class InitMsg:
         self._type = kwargs["type"] if "type" in kwargs else InitMsg.__msg_type
         self._weight = kwargs["weight"] if "weight" in kwargs else InitMsg.__msg_weight
         self._max_iteration = kwargs["max_iteration"] if "max_iteration" in kwargs else InitMsg.__msg_max_iteration
-        self._sample = kwargs["sample"] if "sample" in kwargs else InitMsg.__msg_sample
+        self._agg_timeout = kwargs["aggtimeout"] if "aggtimeout" in kwargs else InitMsg.__msg_agg_timeout
 
     def get_weight(self):
         return self._weight
@@ -130,8 +130,8 @@ class InitMsg:
     def get_max_iteration(self):
         return self._max_iteration
 
-    def get_sample(self):
-        return self._sample
+    def get_agg_timeout(self):
+        return self._agg_timeout
 
     def set_weight(self, value):
         self._weight = value
@@ -139,8 +139,8 @@ class InitMsg:
     def set_max_iteration(self, value):
         self._max_iteration = value
 
-    def set_sample(self, value):
-        self._sample = value
+    def set_agg_timeout(self, value):
+        self._agg_timeout = value
 
     def __str__(self):
         output = {}

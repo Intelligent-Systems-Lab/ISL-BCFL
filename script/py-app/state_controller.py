@@ -9,7 +9,7 @@ class state:
         self.base_result = base_result  # base-model that aggregate from last round's incoming-models
         self.incoming_model = []  # collection from this round
         self.selection_nonce = 0
-        self.aggregation_timeout = 3 # 3 block
+        self.aggregation_timeout = 3  # 3 block
         self.aggregation_timeout_count = 0
         self.number_of_validator = 4
         self.aggregator_id = -1
@@ -38,13 +38,15 @@ class State_controller:
             self.logger.info("Get round : {} ".format(data.get_round()))
             self.logger.info("round exist, now at round : {} ".format(self.get_last_round()))
             return
-        if  not str(self.get_last_state()["aggregator_id"]) == str(data.get_cid()):
-            self.logger.info("Invalid aggregate cid, the aggregator id should be {}".format(self.get_last_state()["aggregator_id"]))
+        if not str(self.get_last_state()["aggregator_id"]) == str(data.get_cid()):
+            self.logger.info(
+                "Invalid aggregate cid, the aggregator id should be {}".format(self.get_last_state()["aggregator_id"]))
             return
 
         state_data = state(round_=data.get_round(),
                            agg_weight=data.get_weight(),
-                           base_result=data.get_result())
+                           base_result=data.get_result(),
+                           aggregation_timeout=self.get_last_state()['aggregation_timeout'])
         self.states.append(eval(state_data.json()))
         self.aggregation_lock = False
 
@@ -54,7 +56,7 @@ class State_controller:
         if self.aggregation_lock:
             return
         if self.get_last_round() == data.get_round():
-            self.append_incoming_model({"model":data.get_weight(), "cid": data.get_cid()})
+            self.append_incoming_model({"model": data.get_weight(), "cid": data.get_cid()})
             self.logger.info("Get incoming model, round: {}, total: {}".format(self.get_last_round(),
                                                                                len(self.get_incoming_model())))
 
@@ -62,7 +64,8 @@ class State_controller:
         data = InitMsg(**tx)
         state_data = state(round_=0,
                            agg_weight=[],
-                           base_result=data.get_weight())
+                           base_result=data.get_weight(),
+                           aggregation_timeout=data.get_agg_timeout())
         self.states.append(eval(state_data.json()))
         self.trainer.train_run(data.get_weight(), 0)
         self.max_iteration = data.get_max_iteration()
@@ -77,7 +80,7 @@ class State_controller:
         if not self.task_end_check():
             return
 
-        if tx == None and self.aggregation_lock: # Endblock : tx = None 
+        if tx == None and self.aggregation_lock:  # Endblock : tx = None
             self.get_last_state()["aggregation_timeout_count"] += 1
             if self.get_last_state()["aggregation_timeout_count"] >= self.get_last_state()["aggregation_timeout"]:
                 self.get_last_state()["aggregation_timeout_count"] = 0
@@ -152,7 +155,8 @@ class State_controller:
         if len(self.states) >= self.max_iteration and self.get_last_round() >= self.max_iteration - 1:
             if not self.is_saved:
                 result = {"data": self.states}
-                with open('/root/py-app/{}_round_result_{}.json'.format(self.max_iteration, os.getenv("ID")), 'w') as outfile:
+                with open('/root/py-app/{}_round_result_{}.json'.format(self.max_iteration, os.getenv("ID")),
+                          'w') as outfile:
                     json.dump(result, outfile, indent=4)
                 self.logger.info("Save to file....")
             self.is_saved = True

@@ -3,13 +3,13 @@ import json, os
 
 
 class state:
-    def __init__(self, round_, agg_weight, base_result, selected_aggregator=""):
+    def __init__(self, round_, agg_weight, base_result, selected_aggregator="", aggregation_timeout=3):
         self.round = round_  # this round
         self.agg_weight = agg_weight  # last round's incoming-models that aggregate to new base-model
         self.base_result = base_result  # base-model that aggregate from last round's incoming-models
         self.incoming_model = []  # collection from this round
         self.selection_nonce = 0
-        self.aggregation_timeout = 3  # 3 block
+        self.aggregation_timeout = aggregation_timeout  # 3 block
         self.aggregation_timeout_count = 0
         self.number_of_validator = 4
         self.aggregator_id = -1
@@ -80,14 +80,14 @@ class State_controller:
         if not self.task_end_check():
             return
 
-        if tx == None and self.aggregation_lock:  # Endblock : tx = None
+        if tx is None and self.aggregation_lock:  # Endblock : tx = None
             self.get_last_state()["aggregation_timeout_count"] += 1
             if self.get_last_state()["aggregation_timeout_count"] >= self.get_last_state()["aggregation_timeout"]:
                 self.get_last_state()["aggregation_timeout_count"] = 0
                 self.get_last_state()["selection_nonce"] += 1
                 self.aggregator.aggergate_manager(txmanager=self, tx={"type": "aggregate_again"})
             return
-        if tx == None:
+        if tx is None:
             return
         self.pipes(tx["type"])(tx)
 

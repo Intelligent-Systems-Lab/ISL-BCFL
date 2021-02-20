@@ -20,7 +20,7 @@ import random
 def train(logger, dbHandler, bmodel, _round, sender, dataloader, device="GPU"):
     model = Model()
     try:
-        #print(type(dbHandler.cat(bmodel)))
+        # print(type(dbHandler.cat(bmodel)))
         model = base642fullmodel(dbHandler.cat(bmodel))
         # logger.info("ipfs success : {}".format(model[:20]))
     except KeyboardInterrupt:
@@ -79,6 +79,7 @@ class trainer:
         self.dataloader = getdataloader(dataset)
         # self.dataloader = None
         self.sender = sender
+        self.last_train_round = -1
 
     def train_run(self, bmodel_, round_):
         t = th.create_job(train, (self.logger,
@@ -90,7 +91,7 @@ class trainer:
                                   self.devices))
         t.start()
         self.logger.info("Run done")
-    
+
     def train_manager(self, txmanager, tx):
         if tx["type"] == "aggregation" or tx["type"] == "create_task":
             incomings = txmanager.get_last_state()["incoming_model"]
@@ -98,15 +99,14 @@ class trainer:
                 cids = [i["cid"] for i in incomings]
             except:
                 cid = []
-            if not os.getenv("ID") in cids:
+            if not os.getenv("ID") in cids and self.last_train_round + 1 == txmanager.get_last_round():
                 self.logger.info("star training")
                 txmanager.aggregation_lock = False
                 self.train_run(txmanager.get_last_base_model(), txmanager.get_last_round())
-            
+                self.last_train_round = txmanager.get_last_round()
+
         else:
             return
-            
-
 
     # def trainRun(self, bmodel):
     #     print("Run train")

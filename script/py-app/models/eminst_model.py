@@ -27,7 +27,11 @@ class EMNISTDataset(Dataset):
 
 def getdataloader(dset='./mnist_test.csv', batch=256):
     print("Dataset at : {}".format(dset))
-    train = pd.read_csv(dset)
+
+    if dset[-4:] == ".csv":
+        train = pd.read_csv(dset)
+    elif dset[-1:] == ".p":
+        train = pd.read_pickle(dset)
 
     train_labels = train['label'].values
     train_data = train.drop(labels=['label'], axis=1)

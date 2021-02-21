@@ -10,8 +10,12 @@ import numpy as np
 import sys
 sys.setrecursionlimit(1000000)
 
-def get_optimizer(model, lr):
-    return torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+def get_optimizer(type, model, lr):
+    if type == 'sgd':
+        return torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+    elif type == 'adam':
+        return torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+
 
 
 def get_criterion(device):

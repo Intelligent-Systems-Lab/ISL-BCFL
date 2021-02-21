@@ -54,7 +54,7 @@ IPFSMOD=$(ipfs --api /ip4/0.0.0.0/tcp/5001 add ./FIRSTMOD.txt -q)
 echo $IPFSMOD
 
 # Encode TX into base64 
-TX=$(python3 -c "import base64,sys; print(base64.b64encode(sys.argv[1].encode('UTF-8')).decode('UTF-8'))" "{\"type\": \"create_task\",\"max_iteration\": 100,\"aggtimeout\": 5,\"weight\":\"$IPFSMOD\"}")
+TX=$(python3 -c "import base64,sys; print(base64.b64encode(sys.argv[1].encode('UTF-8')).decode('UTF-8'))" "{\"type\": \"create_task\",\"max_iteration\": 100,\"aggtimeout\": 8,\"weight\":\"$IPFSMOD\"}")
 echo $TX
 
 curl --header "Content-Type: application/json" -X POST --data "{\"jsonrpc\":\"2.0\", \"method\": \"broadcast_tx_sync\", \"params\": [\"$TX\"], \"id\": 1}" localhost:26657

@@ -40,7 +40,7 @@ services:
       environment:
         - MODE=core
         - ID=0
-        - DATASET=mnist
+        - DATASET=mnist_fedavg
         - DEVICES=GPU
       volumes: 
         - tenconfig:/tenconfig:z
@@ -59,7 +59,7 @@ services:
       environment:
         - MODE=core
         - ID=1
-        - DATASET=mnist
+        - DATASET=mnist_fedavg
         - DEVICES=GPU
       volumes:
         - tenconfig:/tenconfig:z
@@ -79,7 +79,7 @@ services:
       environment:
         - MODE=core
         - ID=2
-        - DATASET=mnist
+        - DATASET=mnist_fedavg
         - DEVICES=GPU
       volumes:
         - tenconfig:/tenconfig:z
@@ -99,7 +99,7 @@ services:
       environment:
         - MODE=core
         - ID=3
-        - DATASET=mnist
+        - DATASET=mnist_fedavg
         - DEVICES=GPU
       volumes:
         - tenconfig:/tenconfig:z

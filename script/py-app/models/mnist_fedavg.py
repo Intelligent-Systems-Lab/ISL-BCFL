@@ -3,9 +3,12 @@ import torch.nn as nn
 from torchvision import transforms
 from torch.utils.data import DataLoader, TensorDataset, Dataset
 from torch.utils.data.sampler import SubsetRandomSampler
+import torch.nn.functional as F
 import pandas as pd
 import random
 import numpy as np
+import sys
+sys.setrecursionlimit(1000000)
 
 def get_optimizer(model, lr):
     return torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
@@ -71,30 +74,48 @@ def getdataloader(dset='./mnist_test.csv', batch=10):
     return trainloader
 
 
+# class Model(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+
+#         self.cnn = nn.Sequential(nn.Conv2d(in_channels=1, out_channels=32, kernel_size=5),
+#                                  nn.ReLU(inplace=True),
+#                                  nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5),
+#                                  nn.ReLU(inplace=True),
+#                                  nn.MaxPool2d(kernel_size=2),
+#                                  nn.Dropout(0.25),
+#                                  nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3),
+#                                  nn.ReLU(inplace=True),
+#                                  nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3),
+#                                  nn.ReLU(inplace=True),
+#                                  nn.MaxPool2d(kernel_size=2, stride=2),
+#                                  nn.Dropout(0.25))
+
+#         self.classifier = nn.Sequential(nn.Linear(576, 256),
+#                                         nn.Dropout(0.5),
+#                                         nn.Linear(256, 47))
+
+#     def forward(self, x):
+#         x = self.cnn(x)
+#         x = x.view(x.size(0), -1)  # flatten layer
+#         x = self.classifier(x)
+
+#         return x
+
 class Model(nn.Module):
     def __init__(self):
-        super().__init__()
-
-        self.cnn = nn.Sequential(nn.Conv2d(in_channels=1, out_channels=32, kernel_size=5),
-                                 nn.ReLU(inplace=True),
-                                 nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5),
-                                 nn.ReLU(inplace=True),
-                                 nn.MaxPool2d(kernel_size=2),
-                                 nn.Dropout(0.25),
-                                 nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3),
-                                 nn.ReLU(inplace=True),
-                                 nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3),
-                                 nn.ReLU(inplace=True),
-                                 nn.MaxPool2d(kernel_size=2, stride=2),
-                                 nn.Dropout(0.25))
-
-        self.classifier = nn.Sequential(nn.Linear(576, 256),
-                                        nn.Dropout(0.5),
-                                        nn.Linear(256, 47))
+        super(Model, self).__init__()
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.conv2_drop = nn.Dropout2d()
+        self.fc1 = nn.Linear(320, 50)
+        self.fc2 = nn.Linear(50, 10)
 
     def forward(self, x):
-        x = self.cnn(x)
-        x = x.view(x.size(0), -1)  # flatten layer
-        x = self.classifier(x)
-
-        return x
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
+        x = x.view(-1, x.shape[1]*x.shape[2]*x.shape[3])
+        x = F.relu(self.fc1(x))
+        x = F.dropout(x, training=self.training)
+        x = self.fc2(x)
+        return F.log_softmax(x, dim=1)

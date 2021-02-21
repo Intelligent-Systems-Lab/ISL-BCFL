@@ -79,11 +79,11 @@ for p in range(len(packages)):
     df = pd.DataFrame(data=packages[p])
     df = df.rename(columns=get_dict_idx())
     if args.format == "pickle":
-        save_path = args.data + "/mnist_train_{}.p".format(p)
+        save_path = args.data + "/mnist_fedavg_train_{}.p".format(p)
         print("Create : mnist_train_{}.p".format(p))
         df.to_pickle(save_path)
     else:
-        save_path = args.data + "/mnist_train_{}.csv".format(p)
+        save_path = args.data + "/mnist_fedavg_train_{}.csv".format(p)
         print("Create : mnist_train_{}.csv".format(p))
         df.to_csv(save_path, mode='w', index=False)
 

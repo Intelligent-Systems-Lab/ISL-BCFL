@@ -4,7 +4,8 @@ import sys
 import time
 import base64
 import io
-from models.eminst_model import Model
+# from models.eminst_model import Model
+from models.mnist_fedavg import Model
 
 torch.nn.Module.dump_patches = True
 

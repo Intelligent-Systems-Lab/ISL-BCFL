@@ -22,7 +22,7 @@ from tqdm import tqdm
 import json 
 import ipfshttpclient
 
-from models.eminst_model import Model, getdataloader
+from models.mnist_fedavg import Model, getdataloader, get_optimizer, get_criterion
 from utils import *
 
 
@@ -55,8 +55,8 @@ def acc_plot(models, dataloder, device="CPU"):
 
 def local_training(dataloder, device="CPU"):
     model = Model()
-    optimizer = optim.RMSprop(model.parameters(), lr=0.001)
-    loss_function = nn.CrossEntropyLoss()
+    optimizer = get_optimizer("sgd", model=model, lr=0.01)
+    loss_function = get_criterion(device=device)
     model.train()
     models = []
     for i in tqdm(range(100)):
@@ -108,19 +108,19 @@ if __name__ == "__main__":
         bcfl_models.append(base642fullmodel(m))
 
     print("Prepare test dataloader...")
-    test_dataloader = getdataloader(args.dataset+"/emnist_test.csv")
+    test_dataloader = getdataloader(args.dataset+"/mnist_test.csv")
 
     bcfl_result = acc_plot(bcfl_models, test_dataloader, device = "GPU")
 
     print("Local training...\n")
     print("Prepare train dataloader...")
-    train_dataloader = getdataloader(args.dataset+'/emnist_train_all.csv')
+    train_dataloader = getdataloader(args.dataset+'/mnist_train.csv')
 
     local_models = local_training(train_dataloader, device = "GPU")
 
     local_result = acc_plot(local_models, test_dataloader, device = "GPU")
 
-    plt.title("BCFL vs. Local training") 
+    plt.title("100 BCFL vs. Local training") 
     plt.grid(True)
     plt.ylabel("Accuracy")
     plt.xlabel("Round")

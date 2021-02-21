@@ -13,7 +13,8 @@ import thread_handler as th
 from messages import AggregateMsg, UpdateMsg
 
 from utils import *
-from models.eminst_model import *
+# from models.eminst_model import *
+from models.mnist_fedavg import *
 import random
 
 
@@ -26,28 +27,30 @@ def train(logger, dbHandler, bmodel, _round, sender, dataloader, device="GPU"):
     except KeyboardInterrupt:
         logger.info("ipfs fail")
     # logger.info("Train model resolved")
-    optimizer = optim.RMSprop(model.parameters(), lr=0.001)
-    loss_function = nn.CrossEntropyLoss()
     if device == "GPU":
         model.cuda()
 
+    optimizer = get_optimizer(model=model, lr=0.01)
+    loss_function = get_criterion(device=device)
+
     model.train()
     # logger.info("Train model dataloader")
-    for data, target in dataloader:
-        if device == "GPU":
-            data = data.cuda()
-            target = target.cuda()
+    for i in range(10):
+        for data, target in dataloader:
+            if device == "GPU":
+                data = data.cuda()
+                target = target.cuda()
 
-        optimizer.zero_grad()
-        # data = data.view(data.size(0),-1)
+            optimizer.zero_grad()
+            # data = data.view(data.size(0),-1)
 
-        output = model(data.float())
+            output = model(data.float())
 
-        loss = loss_function(output, target)
+            loss = loss_function(output, target)
 
-        loss.backward()
+            loss.backward()
 
-        optimizer.step()
+            optimizer.step()
 
     if device == "GPU":
         model.cpu()

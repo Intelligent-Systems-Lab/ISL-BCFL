@@ -23,6 +23,8 @@ from tx_handler import tx as sender
 from state_controller import State_controller
 from utils import Model
 
+from options import Configer
+
 log = util.get_logger()
 
 
@@ -116,16 +118,27 @@ if __name__ == '__main__':
     parser.add_argument('-p', type=int, default=26658, help='Proxy app port')
     parser.add_argument('-dataset', type=str, default=None, help='Path to dataset')
     parser.add_argument('-device', type=str, default="CPU", help='Device')
+    parser.add_argument('-config', type=str, default=None, help='config')
     args = parser.parse_args()
 
-    newsender = sender(log, url_="http://node0:26657")
-    newdb = moddb("ipfs")
+    if args.config is None:
+        exit("No config.ini found.")
+
+    con = Configer(args.config)
+
+    # newsender = sender(log, url_="http://node0:26657")
+    newsender = sender(log, url_=con.bcfl.get_sender())
+    # newdb = moddb("ipfs")
+    newdb = moddb(con.bcfl.get_db())
+
     newagg = aggregator(log, newdb, newsender)
-    newtrain = trainer(log, args.dataset, newdb, newsender, devices=args.device)
+    # newtrain = trainer(log, args.dataset, newdb, newsender, devices=args.device)
+    newtrain = trainer(log, con, newdb, newsender)
 
     newcontroller = State_controller(log, newtrain, newagg, 4)
 
     # Create the app
-    app = ABCIServer(app=SimpleBCFL(newcontroller), port=args.p)
+    # app = ABCIServer(app=SimpleBCFL(newcontroller), port=args.p)
+    app = ABCIServer(app=SimpleBCFL(newcontroller), port=con.bcfl.get_app_port())
     # Run it
     app.run()

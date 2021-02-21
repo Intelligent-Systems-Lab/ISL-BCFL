@@ -33,7 +33,7 @@ fi
 
 sleep 3
 
-DATAPATH=/mountdata/$DATASET/"$DATASET"_train_$ID.p
+DATAPATH=/mountdata/$DATASET/"$DATASET"_train_$ID.csv
 
 if [ "$MODE" = "core" ]
 then

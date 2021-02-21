@@ -17,13 +17,15 @@ import grpc
 import argparse
 import base64
 import io
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 from tqdm import tqdm
-import json 
+import json
 import ipfshttpclient
 
-from models.mnist_fedavg import Model, getdataloader, get_optimizer, get_criterion
+from models.eminst_model import Model, getdataloader
 from utils import *
+
+from options import Configer
 
 
 def acc_plot(models, dataloder, device="CPU"):
@@ -33,10 +35,10 @@ def acc_plot(models, dataloder, device="CPU"):
         res = np.array([])
         if device == "GPU":
             model.cuda()
-        
+
         model.eval()
         for data, target in dataloder:
-            #data = data.view(data.size(0),-1)
+            # data = data.view(data.size(0),-1)
             data = data.float()
             if device == "GPU":
                 data = data.cuda()
@@ -48,28 +50,29 @@ def acc_plot(models, dataloder, device="CPU"):
             ans = np.append(ans, np.array(target))
             res = np.append(res, np.array(preds))
 
-        acc = (ans==res).sum()/len(ans)
+        acc = (ans == res).sum() / len(ans)
         accd.append(acc)
-        
+
     return accd
 
-def local_training(dataloder, device="CPU"):
+
+def local_training(dataloder, device, iter_):
     model = Model()
-    optimizer = get_optimizer("sgd", model=model, lr=0.01)
-    loss_function = get_criterion(device=device)
+    optimizer = optim.RMSprop(model.parameters(), lr=0.001)
+    loss_function = nn.CrossEntropyLoss()
     model.train()
     models = []
-    for i in tqdm(range(100)):
+    for i in tqdm(range(iter_)):
         models.append(model.cpu())
-        #print("E : ", i)
+        # print("E : ", i)
         running_loss = 0
         for data, target in dataloder:
             if device == "GPU":
-                model.cuda() 
+                model.cuda()
                 data = data.cuda()
                 target = target.cuda()
             optimizer.zero_grad()
-            #data = data.view(data.size(0),-1)
+            # data = data.view(data.size(0),-1)
             output = model(data.float())
             loss = loss_function(output, target)
             loss.backward()
@@ -81,20 +84,24 @@ def local_training(dataloder, device="CPU"):
     return models
 
 
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-dataset', type=str, default=None, help='Path to dataset folder')
-    parser.add_argument('-result', type=str, default=None, help='Path to json result')
-    parser.add_argument('-output', type=str, default=None, help='Output path')
-    parser.add_argument('-ipfsaddr', type=str, default="/ip4/140.113.164.150/tcp/5001/", help='ipfs address')
+    # parser.add_argument('-dataset', type=str, default=None, help='Path to dataset folder')
+    # parser.add_argument('-result', type=str, default=None, help='Path to json result')
+    # parser.add_argument('-output', type=str, default=None, help='Output path')
+    # parser.add_argument('-ipfsaddr', type=str, default="/ip4/172.168.10.10/tcp/5001/", help='ipfs address')
+    parser.add_argument('-config', type=str, default=None, help='config')
     args = parser.parse_args()
 
-    
-    client = ipfshttpclient.connect(args.ipfsaddr)
+    if args.config is None:
+        exit("No config.ini found.")
 
-    file_ = open(args.result,'r')
+    con = Configer(args.config)
+
+    client = ipfshttpclient.connect(con.eval.get_ipfsaddr())
+
+    reuslt = "/root/{}_round_result_0.json".format(con.trainer.get_max_iteration())
+    file_ = open(reuslt, 'r')
     context = json.load(file_)
     file_.close()
     lcontext = []
@@ -108,31 +115,27 @@ if __name__ == "__main__":
         bcfl_models.append(base642fullmodel(m))
 
     print("Prepare test dataloader...")
-    test_dataloader = getdataloader(args.dataset+"/mnist_test.csv")
+    test_dataloader = getdataloader("/mountdata/{}/{}_test.csv".format(con.trainer.get_dataset()), con.trainer.get_dataset())
 
-    bcfl_result = acc_plot(bcfl_models, test_dataloader, device = "GPU")
+    bcfl_result = acc_plot(bcfl_models, test_dataloader, con.trainer.get_device())
 
     print("Local training...\n")
     print("Prepare train dataloader...")
-    train_dataloader = getdataloader(args.dataset+'/mnist_train.csv')
+    train_dataloader = getdataloader("/mountdata/{}/{}_train.csv".format(con.trainer.get_dataset()), con.trainer.get_dataset())
 
-    local_models = local_training(train_dataloader, device = "GPU")
+    local_models = local_training(train_dataloader, con.trainer.get_device(), con.trainer.get_max_iteration())
 
-    local_result = acc_plot(local_models, test_dataloader, device = "GPU")
+    local_result = acc_plot(local_models, test_dataloader, con.trainer.get_device())
 
-    plt.title("100 BCFL vs. Local training") 
+    plt.title(con.eval.get_title())
     plt.grid(True)
     plt.ylabel("Accuracy")
     plt.xlabel("Round")
-    #plt.plot(range(10), bcfl_acc[:10], range(10), local_acc[:10])
-    plt.plot(range(100), bcfl_result[:100], color='red', label='BCFL')
-    plt.plot(range(100), local_result[:100], color='green', label='LOCAL')
+    miter = con.trainer.get_max_iteration()
+    # plt.plot(range(10), bcfl_acc[:10], range(10), local_acc[:10])
+    plt.plot(range(miter), bcfl_result[:miter], color='red', label='BCFL')
+    plt.plot(range(miter), local_result[:miter], color='green', label='LOCAL')
     plt.legend()
 
     # plt.show()
-    plt.savefig(args.output)
-
-
-
-
-
+    plt.savefig(con.eval.get_output())

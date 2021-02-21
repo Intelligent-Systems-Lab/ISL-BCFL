@@ -14,11 +14,11 @@ from messages import AggregateMsg, UpdateMsg
 
 from utils import *
 # from models.eminst_model import *
-from models.mnist_fedavg import *
+# from models.mnist_fedavg import *
 import random
 
 
-def train(logger, dbHandler, bmodel, _round, sender, dataloader, device="GPU"):
+def train(logger, dbHandler, local_ep, bmodel, _round, sender, dataloader, device, get_optimizer, get_criterion, lr, opti):
     model = Model()
     try:
         # print(type(dbHandler.cat(bmodel)))
@@ -30,12 +30,12 @@ def train(logger, dbHandler, bmodel, _round, sender, dataloader, device="GPU"):
     if device == "GPU":
         model.cuda()
 
-    optimizer = get_optimizer(model=model, lr=0.01)
+    optimizer = get_optimizer(opti, model=model, lr=lr)
     loss_function = get_criterion(device=device)
 
     model.train()
     # logger.info("Train model dataloader")
-    for i in range(10):
+    for i in range(local_ep):
         for data, target in dataloader:
             if device == "GPU":
                 data = data.cuda()
@@ -72,26 +72,49 @@ def train(logger, dbHandler, bmodel, _round, sender, dataloader, device="GPU"):
 
 
 class trainer:
-    def __init__(self, logger, dataset, dbHandler, sender, devices="CPU", batchsize=1024):
+    def __init__(self, logger, config, dbHandler, sender, devices="CPU", batchsize=1024):
+
+        if self.config.trainer.get_dataset() == "mnist":
+            from models.mnist_model import *
+        elif self.config.trainer.get_dataset() == "mnist_fedavg":
+            from models.mnist_fedavg import *
+        elif self.config.trainer.get_dataset() == "emnist":
+            from models.eminst_model import *
+        elif self.config.trainer.get_dataset() == "emnist_fedavg":
+            from models.emnist_fedavg import *
+
         self.logger = logger
+        self.config = config
         # self.dataset = dataset  # path to dataset
-        self.devices = devices
+        self.devices = self.config.trainer.get_device()
         self.logger.info("Use : {}".format(self.devices))
-        self.batchsize = batchsize
+        self.local_bs = self.config.trainer.get_local_bs()
+        self.local_ep = self.config.trainer.get_local_ep()
         self.dbHandler = dbHandler
-        self.dataloader = getdataloader(dataset)
+        self.dataloader = getdataloader(self.config.trainer.get_dataset(), batch=self.local_bs)
         # self.dataloader = None
         self.sender = sender
         self.last_train_round = -1
 
+        self.get_optimizer = get_optimizer
+        self.get_criterion = get_criterion
+        self.lr = self.config.trainer.get_lr()
+        self.optimizer = self.config.trainer.get_optimizer()
+
     def train_run(self, bmodel_, round_):
         t = th.create_job(train, (self.logger,
                                   self.dbHandler,
+                                  self.local_ep,
                                   bmodel_,
                                   round_,
                                   self.sender,
                                   self.dataloader,
-                                  self.devices))
+                                  self.devices,
+                                  self.get_optimizer,  # import
+                                  self.get_criterion,  # import
+                                  self.lr,
+                                  self.optimizer
+                                  ))
         t.start()
         self.logger.info("Run done")
 

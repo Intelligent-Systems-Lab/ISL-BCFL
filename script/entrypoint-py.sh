@@ -44,7 +44,7 @@ then
 
     sed -i 's#laddr = "tcp://127.0.0.1:26657"#laddr = "tcp://0.0.0.0:26657"#'  $TMHOME/config/config.toml
     echo "Start"
-    python -u /root/py-app/bcfl.py -dataset $DATAPATH -device $DEVICES &
+    python -u /root/py-app/bcfl.py -config /root/py-app/config/config.ini &
 
     tendermint node --home $TMHOME --proxy_app "tcp://localhost:26658"
 

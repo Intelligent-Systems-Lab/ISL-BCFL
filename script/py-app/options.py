@@ -11,8 +11,8 @@ class config_bcfl:
     def get_db(self):
         return self.config["db"]
 
-    def get_app_port(self):
-        return self.config["app_port"]
+    def get_app_port(self) -> int:
+        return int(self.config["app_port"])
 
 
 class config_trainer:
@@ -31,11 +31,11 @@ class config_trainer:
     def get_local_ep(self) -> int:
         return int(self.config["local_ep"])
 
-    def get_frac(self):
-        return self.config["frac"]
+    def get_frac(self) -> float:
+        return float(self.config["frac"])
 
-    def get_lr(self):
-        return self.config["lr"]
+    def get_lr(self) -> float:
+        return float(self.config["lr"])
 
     def get_optimizer(self):
         return self.config["optimizer"]
@@ -43,8 +43,8 @@ class config_trainer:
     def get_lossfun(self):
         return self.config["lossfun"]
 
-    def get_max_iteration(self):
-        return self.config["max_iteration"]
+    def get_max_iteration(self) -> int:
+        return int(self.config["max_iteration"])
 
 class config_eval:
     def __init__(self, config):

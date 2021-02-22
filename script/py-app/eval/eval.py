@@ -56,14 +56,15 @@ def acc_plot(models, dataloder, device="CPU"):
     return accd
 
 
-def local_training(dataloder, device, iter_):
+def local_training(dataloder, device, iter_ep, loacl_ep):
     model = Model()
     optimizer = optim.RMSprop(model.parameters(), lr=0.001)
     loss_function = nn.CrossEntropyLoss()
     model.train()
     models = []
-    for i in tqdm(range(iter_)):
-        models.append(model.cpu())
+    for i in tqdm(range(iter_ep*loacl_ep)):
+        if i % loacl_ep ==0:
+            models.append(model.cpu())
         # print("E : ", i)
         running_loss = 0
         for data, target in dataloder:
@@ -115,15 +116,15 @@ if __name__ == "__main__":
         bcfl_models.append(base642fullmodel(m))
 
     print("Prepare test dataloader...")
-    test_dataloader = getdataloader("/mountdata/{}/{}_test.csv".format(con.trainer.get_dataset()), con.trainer.get_dataset())
+    test_dataloader = getdataloader("/mountdata/{}/{}_test.csv".format(con.trainer.get_dataset(), con.trainer.get_dataset()))
 
     bcfl_result = acc_plot(bcfl_models, test_dataloader, con.trainer.get_device())
 
     print("Local training...\n")
     print("Prepare train dataloader...")
-    train_dataloader = getdataloader("/mountdata/{}/{}_train.csv".format(con.trainer.get_dataset()), con.trainer.get_dataset())
+    train_dataloader = getdataloader("/mountdata/{}/{}_train.csv".format(con.trainer.get_dataset(), con.trainer.get_dataset()))
 
-    local_models = local_training(train_dataloader, con.trainer.get_device(), con.trainer.get_max_iteration())
+    local_models = local_training(train_dataloader, con.trainer.get_device(), con.trainer.get_max_iteration(), con.trainer.get_local_ep())
 
     local_result = acc_plot(local_models, test_dataloader, con.trainer.get_device())
 

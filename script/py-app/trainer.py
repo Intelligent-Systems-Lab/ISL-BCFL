@@ -14,11 +14,11 @@ from messages import AggregateMsg, UpdateMsg
 
 from utils import *
 # from models.eminst_model import *
-# from models.mnist_fedavg import *
+from models.mnist_fedavg import *
 import random
 
 
-def train(logger, dbHandler, local_ep, bmodel, _round, sender, dataloader, device, get_optimizer, get_criterion, lr, opti):
+def train(logger, dbHandler, local_ep, bmodel, _round, sender, dataloader, device, lr, opti):
     model = Model()
     try:
         # print(type(dbHandler.cat(bmodel)))
@@ -74,14 +74,14 @@ def train(logger, dbHandler, local_ep, bmodel, _round, sender, dataloader, devic
 class trainer:
     def __init__(self, logger, config, dbHandler, sender, devices="CPU", batchsize=1024):
 
-        if self.config.trainer.get_dataset() == "mnist":
-            from models.mnist_model import *
-        elif self.config.trainer.get_dataset() == "mnist_fedavg":
-            from models.mnist_fedavg import *
-        elif self.config.trainer.get_dataset() == "emnist":
-            from models.eminst_model import *
-        elif self.config.trainer.get_dataset() == "emnist_fedavg":
-            from models.emnist_fedavg import *
+        # if self.config.trainer.get_dataset() == "mnist":
+        #     from models.mnist_model import *
+        # elif self.config.trainer.get_dataset() == "mnist_fedavg":
+        #     from models.mnist_fedavg import *
+        # elif self.config.trainer.get_dataset() == "emnist":
+        #     from models.eminst_model import *
+        # elif self.config.trainer.get_dataset() == "emnist_fedavg":
+        #     from models.emnist_fedavg import *
 
         self.logger = logger
         self.config = config
@@ -95,9 +95,7 @@ class trainer:
         # self.dataloader = None
         self.sender = sender
         self.last_train_round = -1
-
-        self.get_optimizer = get_optimizer
-        self.get_criterion = get_criterion
+        
         self.lr = self.config.trainer.get_lr()
         self.optimizer = self.config.trainer.get_optimizer()
 
@@ -110,8 +108,6 @@ class trainer:
                                   self.sender,
                                   self.dataloader,
                                   self.devices,
-                                  self.get_optimizer,  # import
-                                  self.get_criterion,  # import
                                   self.lr,
                                   self.optimizer
                                   ))

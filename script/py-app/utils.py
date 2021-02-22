@@ -1,11 +1,14 @@
 import torch
 import pandas as pd
-import sys
+import sys, os
 import time
 import base64
 import io
 # from models.eminst_model import Model
-from models.mnist_fedavg import Model
+# from models.mnist_fedavg import Model
+import argparse
+
+from options import Configer
 
 torch.nn.Module.dump_patches = True
 
@@ -23,8 +26,26 @@ def base642fullmodel(modbase64):
     loadmodel = torch.load(io.BytesIO(inputrpc_))
     return loadmodel
 
+
 if __name__ == "__main__":
-    with open(sys.argv[1], "w") as file:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-config', type=str, default=None, help='config')
+    args = parser.parse_args()
+
+    if args.config is None:
+        exit("No config.ini found.")
+
+    con = Configer(args.config)
+
+    con.trainer.get_dataset()
+    if os.getenv("DATASET") == "mnist":
+        from models.mnist_model import *
+    elif os.getenv("DATASET") == "mnist_fedavg":
+        from models.mnist_fedavg import *
+    elif os.getenv("DATASET") == "emnist":
+        from models.eminst_model import *
+    elif os.getenv("DATASET") == "emnist_fedavg":
+        from models.emnist_fedavg import *
+
+    with open("/root/FIRSTMOD.txt", "w") as file:
         file.write(fullmodel2base64(Model()))
-
-

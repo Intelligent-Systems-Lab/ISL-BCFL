@@ -1,7 +1,7 @@
 import struct
 import abci.utils as util
 import argparse
-import json
+import json, os
 
 from abci import (
     ABCIServer,
@@ -125,6 +125,8 @@ if __name__ == '__main__':
         exit("No config.ini found.")
 
     con = Configer(args.config)
+
+    os.environ["DATASET"] = con.trainer.get_dataset()
 
     # newsender = sender(log, url_="http://node0:26657")
     newsender = sender(log, url_=con.bcfl.get_sender())

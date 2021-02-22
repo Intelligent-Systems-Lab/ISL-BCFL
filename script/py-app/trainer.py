@@ -17,6 +17,16 @@ from utils import *
 from models.mnist_fedavg import *
 import random
 
+if os.getenv("DATASET") == "mnist":
+    from models.mnist_model import *
+elif os.getenv("DATASET") == "mnist_fedavg":
+    from models.mnist_fedavg import *
+elif os.getenv("DATASET") == "emnist":
+    from models.eminst_model import *
+elif os.getenv("DATASET") == "emnist_fedavg":
+    from models.emnist_fedavg import *
+print("DATASET: {}".format(os.getenv("DATASET")))
+
 
 def train(logger, dbHandler, local_ep, bmodel, _round, sender, dataloader, device, lr, opti):
     model = Model()
@@ -72,17 +82,7 @@ def train(logger, dbHandler, local_ep, bmodel, _round, sender, dataloader, devic
 
 
 class trainer:
-    def __init__(self, logger, config, dbHandler, sender, devices="CPU", batchsize=1024):
-
-        # if self.config.trainer.get_dataset() == "mnist":
-        #     from models.mnist_model import *
-        # elif self.config.trainer.get_dataset() == "mnist_fedavg":
-        #     from models.mnist_fedavg import *
-        # elif self.config.trainer.get_dataset() == "emnist":
-        #     from models.eminst_model import *
-        # elif self.config.trainer.get_dataset() == "emnist_fedavg":
-        #     from models.emnist_fedavg import *
-
+    def __init__(self, logger, config, dbHandler, sender):
         self.logger = logger
         self.config = config
         # self.dataset = dataset  # path to dataset
@@ -95,7 +95,7 @@ class trainer:
         # self.dataloader = None
         self.sender = sender
         self.last_train_round = -1
-        
+
         self.lr = self.config.trainer.get_lr()
         self.optimizer = self.config.trainer.get_optimizer()
 

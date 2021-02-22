@@ -46,7 +46,7 @@ After training, terminate "tshark" program manually. The ```.pcap``` file will b
 ```bash=
 # create new model
 cd <path to repo>/script/py-app
-docker run --rm -it -v $(pwd):/root/:z tony92151/py-abci python3 /root/utils.py /root/FIRSTMOD.txt
+docker run --rm -it -v $(pwd):/root/:z tony92151/py-abci python3 /root/utils.py -config /root/config/config.ini
 # sudo chown $(whoami)  FIRSTMOD.txt
 
 # Upload to ipfs
@@ -65,7 +65,7 @@ curl --header "Content-Type: application/json" -X POST --data "{\"jsonrpc\":\"2.
 ```bash=
 cd <path to repo>
 # This could take 50 minutes
-docker run --gpus all --rm -it -v $(pwd)/script/py-app:/root/:z -v $(pwd)/data:/mountdata/ tony92151/py-abci python3 /root/eval/eval.py -dataset /mountdata/emnist -result /root/100_round_result_0.json -output /root/result.jpg
+docker run --gpus all --rm -it -v $(pwd)/script/py-app:/root/:z -v $(pwd)/data:/mountdata/ tony92151/py-abci python3 /root/eval/eval.py -config /root/config/config.ini
 ```
 
 ## Network analysis

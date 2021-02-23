@@ -14,34 +14,32 @@ from messages import AggregateMsg, UpdateMsg
 
 from utils import *
 # from models.eminst_model import *
-from models.mnist_fedavg import *
+from models.models_select import *
 import random
 
-if os.getenv("DATASET") == "mnist":
-    from models.mnist_model import *
-elif os.getenv("DATASET") == "mnist_fedavg":
-    from models.mnist_fedavg import *
-elif os.getenv("DATASET") == "emnist":
-    from models.eminst_model import *
-elif os.getenv("DATASET") == "emnist_fedavg":
-    from models.emnist_fedavg import *
-print("DATASET: {}".format(os.getenv("DATASET")))
 
+def train(logger, dbHandler, config, bmodel, _round, sender, dataloader):
+    local_ep = config.trainer.get_local_ep()
+    device = config.trainer.get_device()
+    lr = config.trainer.get_lr()
 
-def train(logger, dbHandler, local_ep, bmodel, _round, sender, dataloader, device, lr, opti):
+    if config.trainer.get_dataset() == "mnist":
+        Model = Model_mnist
+    elif config.trainer.get_dataset() == "mnist_fedavg":
+        Model = Model_mnist_fedavg
+    # model_ = Model()
+
     model = Model()
     try:
-        # print(type(dbHandler.cat(bmodel)))
         model = base642fullmodel(dbHandler.cat(bmodel))
         # logger.info("ipfs success : {}".format(model[:20]))
     except KeyboardInterrupt:
         logger.info("ipfs fail")
-    # logger.info("Train model resolved")
     if device == "GPU":
         model.cuda()
 
-    optimizer = get_optimizer(opti, model=model, lr=lr)
-    loss_function = get_criterion(device=device)
+    optimizer = get_optimizer(config.trainer.get_optimizer(), model=model, lr=lr)
+    loss_function = get_criterion(config.trainer.get_lossfun(), device=device)
 
     model.train()
     # logger.info("Train model dataloader")
@@ -89,27 +87,26 @@ class trainer:
         self.devices = self.config.trainer.get_device()
         self.logger.info("Use : {}".format(self.devices))
         self.local_bs = self.config.trainer.get_local_bs()
-        self.local_ep = self.config.trainer.get_local_ep()
+        # self.local_ep = self.config.trainer.get_local_ep()
         self.dbHandler = dbHandler
-        self.dataloader = getdataloader(self.config.trainer.get_dataset(), batch=self.local_bs)
+
+        dset = "/mountdata/{}/{}_train_<ID>.csv".format(self.config.trainer.get_dataset(), self.config.trainer.get_dataset()).replace("<ID>", os.getenv("ID"))
+        self.dataloader = getdataloader(dset, batch=self.local_bs)
         # self.dataloader = None
         self.sender = sender
         self.last_train_round = -1
 
-        self.lr = self.config.trainer.get_lr()
-        self.optimizer = self.config.trainer.get_optimizer()
+        # self.lr = self.config.trainer.get_lr()
+        # self.optimizer = self.config.trainer.get_optimizer()
 
     def train_run(self, bmodel_, round_):
         t = th.create_job(train, (self.logger,
                                   self.dbHandler,
-                                  self.local_ep,
+                                  self.config,
                                   bmodel_,
                                   round_,
                                   self.sender,
-                                  self.dataloader,
-                                  self.devices,
-                                  self.lr,
-                                  self.optimizer
+                                  self.dataloader
                                   ))
         t.start()
         self.logger.info("Run done")

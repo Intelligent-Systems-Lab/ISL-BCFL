@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader, TensorDataset, Dataset
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch import optim
 import pandas as pd
-import sys
+import sys, copy
 
 sys.path.append('/root')
 
@@ -22,7 +22,7 @@ from tqdm import tqdm
 import json
 import ipfshttpclient
 
-from models.eminst_model import Model, getdataloader
+from models.models_select import *
 from utils import *
 
 from options import Configer
@@ -56,19 +56,39 @@ def acc_plot(models, dataloder, device="CPU"):
     return accd
 
 
-def local_training(dataloder, device, iter_ep, loacl_ep):
-    model = Model()
-    optimizer = optim.RMSprop(model.parameters(), lr=0.001)
-    loss_function = nn.CrossEntropyLoss()
-    model.train()
+def local_training(dataloder, con):
+    dataset = con.trainer.get_dataset()
+    device = con.trainer.get_device()
+    iter_ep = con.trainer.get_max_iteration()
+    loacl_ep = con.trainer.get_local_ep()
+    lr = con.trainer.get_lr()
+
+    if dataset == "mnist":
+        Model = Model_mnist
+    elif dataset == "mnist_fedavg":
+        Model = Model_mnist_fedavg
+    model_ = Model()
+    # optimizer = optim.RMSprop(model_.parameters(), lr=0.001)
+    # loss_function = nn.CrossEntropyLoss()
+    # model_.train()
     models = []
+
+    bmodel = fullmodel2base64(Model())
     for i in tqdm(range(iter_ep*loacl_ep)):
+        model = base642fullmodel(bmodel)
+        optimizer = optim.RMSprop(model.parameters(), lr=lr)
+        loss_function = nn.CrossEntropyLoss()
+
+        optimizer = get_optimizer(con.trainer.get_optimizer(), model=model, lr=lr)
+        loss_function = get_criterion(con.trainer.get_lossfun(), device=device)
+
         if i % loacl_ep ==0:
-            models.append(model.cpu())
+            models.append(copy.deepcopy(model).cpu())
         # print("E : ", i)
         running_loss = 0
         for data, target in dataloder:
             if device == "GPU":
+                model.train()
                 model.cuda()
                 data = data.cuda()
                 target = target.cuda()
@@ -79,9 +99,12 @@ def local_training(dataloder, device, iter_ep, loacl_ep):
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
+            
+        bmodel = fullmodel2base64(copy.deepcopy(model).cpu().eval())
         if device == "GPU":
-            model.cpu()
-        # models.append(model.cpu())
+            model_.cpu()
+        #models.append(model_.cpu())
+        #print(running_loss)
     return models
 
 
@@ -109,22 +132,31 @@ if __name__ == "__main__":
     for i in context["data"]:
         lcontext.append(i["base_result"])
 
+    if con.trainer.get_dataset() == "mnist":
+        Model = Model_mnist
+    elif con.trainer.get_dataset() == "mnist_fedavg":
+        Model = Model_mnist_fedavg
+    else:
+        print("No model match")
+        exit()
+
     bcfl_models = []
     print("Download...")
     for i in lcontext:
         m = client.cat(i).decode()
-        bcfl_models.append(base642fullmodel(m))
-
+        #model_ = Model()
+        model_ = base642fullmodel(m)
+        bcfl_models.append(copy.deepcopy(model_))
     print("Prepare test dataloader...")
-    test_dataloader = getdataloader("/mountdata/{}/{}_test.csv".format(con.trainer.get_dataset(), con.trainer.get_dataset()))
+    test_dataloader = getdataloader("/mountdata/{}/{}_test.csv".format(con.trainer.get_dataset(), con.trainer.get_dataset()), 512)
 
     bcfl_result = acc_plot(bcfl_models, test_dataloader, con.trainer.get_device())
 
     print("Local training...\n")
     print("Prepare train dataloader...")
-    train_dataloader = getdataloader("/mountdata/{}/{}_train.csv".format(con.trainer.get_dataset(), con.trainer.get_dataset()))
+    train_dataloader = getdataloader("/mountdata/{}/{}_train_0.csv".format(con.trainer.get_dataset(), con.trainer.get_dataset()), 512)
 
-    local_models = local_training(train_dataloader, con.trainer.get_device(), con.trainer.get_max_iteration(), con.trainer.get_local_ep())
+    local_models = local_training(train_dataloader, con)
 
     local_result = acc_plot(local_models, test_dataloader, con.trainer.get_device())
 

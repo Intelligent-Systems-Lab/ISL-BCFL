@@ -57,7 +57,7 @@ for i in tqdm(range(num_package)):
     idx_shard = list(set(idx_shard) - rand_set)
 
     for rand in rand_set:
-        list_of_containt = list_of_containt+train_data[rand*num_imgs:(rand+1)*num_imgs]
+        list_of_containt = list_of_containt + train_data[rand*num_imgs:(rand+1)*num_imgs]
 
     #random.shuffle(list_of_containt)
     packages.append(list_of_containt)

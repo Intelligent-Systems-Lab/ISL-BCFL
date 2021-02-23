@@ -6,7 +6,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 import pandas as pd
 import random
 import numpy as np
-
+import sys, os
 
 def get_optimizer(type_, model, lr):
     return torch.optim.RMSprop(model.parameters(), lr=lr)
@@ -40,11 +40,12 @@ class MNISTDataset(Dataset):
 
 
 def getdataloader(dset='./mnist_test.csv', batch=10):
+    dset = "/mountdata/{}/{}_train_<ID>.csv".format(dset, dset).replace("<ID>", os.getenv("ID"))
     print("Dataset at : {}".format(dset))
     train = None
     if dset[-4:] == ".csv":
         train = pd.read_csv(dset)
-    elif dset[-1:] == ".p":
+    elif dset[-2:] == ".p":
         train = pd.read_pickle(dset)
 
     train = train.values.tolist()
@@ -72,7 +73,7 @@ def getdataloader(dset='./mnist_test.csv', batch=10):
     return trainloader
 
 
-class Model(nn.Module):
+class Model_mnist(nn.Module):
     def __init__(self):
         super().__init__()
 

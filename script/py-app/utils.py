@@ -9,6 +9,7 @@ import io
 import argparse
 
 from options import Configer
+from models.models_select import *
 
 torch.nn.Module.dump_patches = True
 
@@ -37,15 +38,10 @@ if __name__ == "__main__":
 
     con = Configer(args.config)
 
-    con.trainer.get_dataset()
-    if os.getenv("DATASET") == "mnist":
-        from models.mnist_model import *
-    elif os.getenv("DATASET") == "mnist_fedavg":
-        from models.mnist_fedavg import *
-    elif os.getenv("DATASET") == "emnist":
-        from models.eminst_model import *
-    elif os.getenv("DATASET") == "emnist_fedavg":
-        from models.emnist_fedavg import *
+    if con.trainer.get_dataset() == "mnist":
+        Model = Model_mnist
+    elif con.trainer.get_dataset() == "mnist_fedavg":
+        Model = Model_mnist_fedavg
 
     with open("/root/FIRSTMOD.txt", "w") as file:
         file.write(fullmodel2base64(Model()))

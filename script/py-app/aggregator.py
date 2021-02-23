@@ -13,7 +13,7 @@ import logging
 
 import argparse
 import base64
-import io, os
+import io, os, copy
 import ipfshttpclient
 import thread_handler as th
 from messages import AggregateMsg, UpdateMsg
@@ -22,15 +22,21 @@ from utils import *
 from models.eminst_model import *
 import hashlib
 
+from models.models_select import *
 
-def aggergate(logger, dbHandler, models, _round, sender):
+
+def aggergate(logger, dbHandler, models, _round, sender, config):
     logger.info("Agg start")
     logger.info("Len of models : {}".format(len(models)))
     model_list = []
     for m in models:
+        if config.trainer.get_dataset() == "mnist":
+            Model = Model_mnist
+        elif config.trainer.get_dataset() == "mnist_fedavg":
+            Model = Model_mnist_fedavg
         model = Model()
         model = base642fullmodel(dbHandler.cat(m))
-        model_list.append(model)
+        model_list.append(copy.deepcopy(model))
 
     new_model_state = model_list[0].state_dict()
 
@@ -48,6 +54,7 @@ def aggergate(logger, dbHandler, models, _round, sender):
     new_model.load_state_dict(new_model_state)
 
     dbres = dbHandler.add(fullmodel2base64(new_model))
+    #dbres = models[0]
 
     # AggregateMsg.set_cid(os.getenv("ID"))
 
@@ -64,14 +71,15 @@ def aggergate(logger, dbHandler, models, _round, sender):
 
 
 class aggregator:
-    def __init__(self, logger, dbHandler, sender):
+    def __init__(self, logger, config, dbHandler, sender):
         self.logger = logger
+        self.config = config
         self.dbHandler = dbHandler
         self.sender = sender
         self.hash = hashlib.md5()
 
     def aggergate_run(self, bmodels, round_):
-        t = th.create_job(aggergate, (self.logger, self.dbHandler, bmodels, round_, self.sender))
+        t = th.create_job(aggergate, (self.logger, self.dbHandler, bmodels, round_, self.sender, self.config))
         t.start()
         self.logger.info("Run Agg")
 

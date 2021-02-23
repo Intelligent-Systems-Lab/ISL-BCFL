@@ -21,7 +21,6 @@ from trainer import trainer
 from db import db as moddb
 from tx_handler import tx as sender
 from state_controller import State_controller
-from utils import Model
 
 from options import Configer
 
@@ -133,7 +132,7 @@ if __name__ == '__main__':
     # newdb = moddb("ipfs")
     newdb = moddb(con.bcfl.get_db())
 
-    newagg = aggregator(log, newdb, newsender)
+    newagg = aggregator(log, con, newdb, newsender)
     # newtrain = trainer(log, args.dataset, newdb, newsender, devices=args.device)
     newtrain = trainer(log, con, newdb, newsender)
 

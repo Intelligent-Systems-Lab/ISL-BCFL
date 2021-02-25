@@ -50,7 +50,7 @@ class State_controller:
         self.states.append(eval(state_data.json()))
         self.aggregation_lock = False
         # make a point save here
-        self.save_round_point(r)
+        self.save_round_point(data.get_round())
 
 
     def update_pipe(self, tx):
@@ -73,6 +73,8 @@ class State_controller:
         self.trainer.train_run(data.get_weight(), 0)
         self.max_iteration = data.get_max_iteration()
         self.logger.info("Max iteration: {}".format(data.get_max_iteration()))
+        # make a point save here
+        self.save_round_point(0)
 
     def pipes(self, type_):
         dis = {"create_task": self.create_task_pipe, "aggregation": self.aggregate_pipe, "update": self.update_pipe}
@@ -170,6 +172,6 @@ class State_controller:
     def save_round_point(self, round):
         if not os.path.exists("/root/py-app/save/"):
             os.mkdir("/root/py-app/save/")
-        open("round_{}".format(round), 'a').close()
+        open("/root/py-app/save/round_{}".format(round), 'a').close()
 
 

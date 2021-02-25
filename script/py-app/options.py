@@ -69,8 +69,8 @@ class config_agg:
     def __init__(self, config):
         self.config = dict(config._sections["aggregator"])
 
-    def get_threshold(self):
-        return self.config["threshold"]
+    def get_threshold(self) -> int:
+        return int(self.config["threshold"])
 
 
 class Configer():

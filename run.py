@@ -19,19 +19,19 @@ def run_network_container():
     return proc
 
 def run_vlaidatror_nodes_container():
-    proc = subprocess.Popen('docker-compose -f ./docker-compose-py.yml up node0 node1 node2 node3', shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen('docker-compose -f ./docker-compose-pygpu.yml up node0 node1 node2 node3', shell=True, stdout=subprocess.PIPE)
     return proc
 
 def run_nodes_container(nodes):
-    proc = subprocess.Popen('docker-compose -f ./docker-compose-py.yml scale nodes={}'.format(nodes), shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen('docker-compose -f ./docker-compose-pygpu.yml scale nodes={}'.format(nodes), shell=True, stdout=subprocess.PIPE)
     return proc
 
 def run_eval_container():
-    proc = subprocess.Popen('docker run --gpus all --rm -it -v {}:/root/:z -v {}:/mountdata/ -n isl-bcfl_localnet tony92151/py-abci python3 /root/py-app/eval/eval.py -config /root/py-app/config/config.ini'.format(os.path.abspath("./script"), os.path.abspath("./data")), shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen('docker run --gpus all --rm -it -v {}:/root/:z -v {}:/mountdata/ --network isl-bcfl_localnet tony92151/py-abci python3 -u /root/py-app/eval/eval.py -config /root/py-app/config/config.ini'.format(os.path.abspath("./script"), os.path.abspath("./data")), shell=True, stdout=subprocess.PIPE)
     return proc
 #############################################
 def send_create_task_TX(max_iteration=10):
-    proc = subprocess.Popen('docker run --rm -it -v {}:/root/:z tony92151/py-abci python3 /root/py-app/utils.py -config /root/py-app/config/config.ini > FIRSTMOD.txt'.format(os.path.abspath("./script")), shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen('docker run --rm -it -v {}:/root/:z tony92151/py-abci python3 /root/py-app/utils.py -config /root/py-app/config/config.ini > FIRSTMOD.txt'.format(os.path.abspath("./script")), shell=True)
     proc.wait()
 
     time.sleep(1)
@@ -54,7 +54,7 @@ def send_create_task_TX(max_iteration=10):
     # Adding empty header as parameters are being sent in payload
     headers = {"Content-Type": "application/json"}
     r = requests.post(url, data=json.dumps(payload), headers=headers)
-    print(json.dumps(r.content, indent=4, sort_keys=True))
+    print(json.dumps(json.loads(r.content), indent=4, sort_keys=True))
     return proc
 
 def set_config_file(f):
@@ -66,7 +66,7 @@ def stop_network_container():
     return proc
 
 def terminate_all_container():
-    proc = subprocess.Popen('docker-compose -f ./docker-compose-py.yml down -v', shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen('docker-compose -f ./docker-compose-pygpu.yml down -v', shell=True, stdout=subprocess.PIPE)
     return proc
 #############################################
 def move_result_to_save_folder():
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     # # launch ipfs container
     p_ipfs = run_ipfs_container()
     print("PID : ipfs : {}".format(p_ipfs.pid))
-    time.sleep(5)
+    time.sleep(1)
 
     # # launch network capture container
     # p_net = run_network_container()
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     # launch network capture container
     p_vnodes = run_vlaidatror_nodes_container()
     print("PID : vlaidatror_nodes : {}".format(p_vnodes.pid))
-    time.sleep(1)
+    time.sleep(5)
 
     # # launch scalble-nodes container
     if not con.bcfl.get_scale_nodes() == 0:
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     time.sleep(30)
 
     #send create-task TX to strat trining.
-    # send_create_task_TX(con.trainer.get_max_iteration())
+    send_create_task_TX(con.trainer.get_max_iteration())
 
     # check whether training process is finish
     path = os.path.abspath("./script/py-app/save/")
@@ -140,7 +140,9 @@ if __name__ == "__main__":
 
 
     # launch eval container
-    #p_eval = run_eval_container()
+    p_eval = run_eval_container()
+    p_eval.wait()
+    print("Eval done.\n")
 
     # move all result to save_path
     #p_save = move_result_to_save_folder()
@@ -149,4 +151,4 @@ if __name__ == "__main__":
     time.sleep(10)
     p_t = terminate_all_container()
     p_t.wait()
-    print("Done\n")
+    print("Done.\n")

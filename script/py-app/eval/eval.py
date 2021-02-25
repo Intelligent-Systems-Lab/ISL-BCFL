@@ -7,7 +7,7 @@ from torch import optim
 import pandas as pd
 import sys, copy
 
-sys.path.append('/root')
+sys.path.append('/root/py-app')
 
 import time
 import numpy as np
@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
     client = ipfshttpclient.connect(con.eval.get_ipfsaddr())
 
-    reuslt = "/root/{}_round_result_0.json".format(con.trainer.get_max_iteration())
+    reuslt = "/root/py-app/{}_round_result_0.json".format(con.trainer.get_max_iteration())
     file_ = open(reuslt, 'r')
     context = json.load(file_)
     file_.close()

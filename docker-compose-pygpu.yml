@@ -120,7 +120,57 @@ services:
       user: root
       environment:
         - MODE=nodes
-        - DATASET=mnist_fedavg
+        - DEVICES=GPU
+        - DOCKER_HOST=unix:///run/docker.sock
+      volumes:
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+        - ./data:/mountdata
+        - /run/docker.sock:/run/docker.sock:ro
+      deploy:
+        resources:
+          reservations:
+            generic_resources:
+              - discrete_resource_spec:
+                  kind: 'gpu'
+                  value: 1
+      entrypoint: /bin/bash
+      command: /root/entrypoint-py.sh
+      networks:
+        localnet:
+
+  nodes1:
+      image: tony92151/py-abci
+      runtime: nvidia
+      user: root
+      environment:
+        - MODE=nodes
+        - DEVICES=GPU
+        - DOCKER_HOST=unix:///run/docker.sock
+      volumes:
+        - tenconfig:/tenconfig:z
+        - ./script:/root:z
+        - ./data:/mountdata
+        - /run/docker.sock:/run/docker.sock:ro
+      deploy:
+        resources:
+          reservations:
+            generic_resources:
+              - discrete_resource_spec:
+                  kind: 'gpu'
+                  value: 1
+      entrypoint: /bin/bash
+      command: /root/entrypoint-py.sh
+      networks:
+        localnet:
+
+
+  nodes2:
+      image: tony92151/py-abci
+      runtime: nvidia
+      user: root
+      environment:
+        - MODE=nodes
         - DEVICES=GPU
         - DOCKER_HOST=unix:///run/docker.sock
       volumes:

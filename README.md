@@ -22,6 +22,11 @@ NUMOFPKG=4 bash create_mnist_dataset.sh
 ```
 more detail in "data" folder.
 
+## Using python script 
+```bash=
+python3 run.py --config ./script/py-app/config/config.ini --output ./save/
+```
+
 ## docker-compose run
 ```bash=
 # CPU:

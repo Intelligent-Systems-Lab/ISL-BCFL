@@ -14,6 +14,12 @@ class config_bcfl:
     def get_app_port(self) -> int:
         return int(self.config["app_port"])
 
+    def get_save_path(self):
+        return self.config["save_path"]
+    
+    def get_scale_nodes(self) -> int:
+        return int(self.config["scale_nodes"])
+
 
 class config_trainer:
     def __init__(self, config):

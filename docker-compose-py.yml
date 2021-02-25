@@ -106,22 +106,22 @@ services:
         localnet:
           ipv4_address: 172.168.10.53
 ##################################################
-  abci0:
-      image: tony92151/py-abci
-      container_name: abci0
-      user: root
-      environment:
-        - MODE=abci
-        - DATASET=emnist
-      volumes:
-        - tenconfig:/tenconfig:z
-        - ./script:/root:z
-        - ./data:/mountdata
-      entrypoint: /bin/bash
-      command: /root/entrypoint-py.sh
-      networks:
-        localnet:
-          ipv4_address: 172.168.10.54
+  # abci0:
+  #     image: tony92151/py-abci
+  #     container_name: abci0
+  #     user: root
+  #     environment:
+  #       - MODE=abci
+  #       - DATASET=emnist
+  #     volumes:
+  #       - tenconfig:/tenconfig:z
+  #       - ./script:/root:z
+  #       - ./data:/mountdata
+  #     entrypoint: /bin/bash
+  #     command: /root/entrypoint-py.sh
+  #     networks:
+  #       localnet:
+  #         ipv4_address: 172.168.10.54
 ##################################################
   nodes:
       image: tony92151/py-abci
@@ -129,9 +129,12 @@ services:
       environment:
         - MODE=nodes
         - DATASET=emnist
+        - DOCKER_HOST=unix:///run/docker.sock
       volumes:
         - tenconfig:/tenconfig:z
         - ./script:/root:z
+        - ./data:/mountdata
+        - /run/docker.sock:/run/docker.sock:ro
       entrypoint: /bin/bash
       command: /root/entrypoint-py.sh
       networks:

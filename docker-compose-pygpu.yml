@@ -13,7 +13,6 @@ services:
   ipfsA:
       image: tony92151/ipfs-alpine
       container_name: ipfsA
-      runtime: nvidia
       ports:
         - 4001:4001
         - 5001:5001
@@ -123,10 +122,12 @@ services:
         - MODE=nodes
         - DATASET=mnist_fedavg
         - DEVICES=GPU
+        - DOCKER_HOST=unix:///run/docker.sock
       volumes:
         - tenconfig:/tenconfig:z
         - ./script:/root:z
         - ./data:/mountdata
+        - /run/docker.sock:/run/docker.sock:ro
       deploy:
         resources:
           reservations:

@@ -65,7 +65,7 @@ curl --header "Content-Type: application/json" -X POST --data "{\"jsonrpc\":\"2.
 ```bash=
 cd <path to repo>
 # This could take 50 minutes
-docker run --gpus all --rm -it -v $(pwd)/script/py-app:/root/:z -v $(pwd)/data:/mountdata/ tony92151/py-abci python3 /root/eval/eval.py -config /root/config/config.ini
+docker run --gpus all --rm -it -v $(pwd)/script/py-app:/root/:z -v $(pwd)/data:/mountdata/ -n isl-bcfl_localnet tony92151/py-abci python3 /root/eval/eval.py -config /root/config/config.ini
 ```
 
 ## Network analysis

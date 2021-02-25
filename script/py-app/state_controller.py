@@ -49,6 +49,9 @@ class State_controller:
                            aggregation_timeout=self.get_last_state()['aggregation_timeout'])
         self.states.append(eval(state_data.json()))
         self.aggregation_lock = False
+        # make a point save here
+        self.save_round_point(r)
+
 
     def update_pipe(self, tx):
         data = UpdateMsg(**tx)
@@ -163,3 +166,10 @@ class State_controller:
             return False
         else:
             return True
+            
+    def save_round_point(self, round):
+        if not os.path.exists("/root/py-app/save/"):
+            os.mkdir("/root/py-app/save/")
+        open("round_{}".format(round), 'a').close()
+
+

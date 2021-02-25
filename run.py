@@ -1,12 +1,15 @@
 from multiprocessing import Pool
-import time
-import sys, os
+import time, json, requests
+import sys, os, base64
 import argparse
 import subprocess
 sys.path.append('script/py-app')
-
+import ipfshttpclient
+import glob
 from options import Configer
+from tqdm import tqdm
 
+#############################################
 def run_ipfs_container():
     proc = subprocess.Popen('docker-compose -f ./docker-compose-pygpu.yml up ipfsA', shell=True, stdout=subprocess.PIPE)
     return proc
@@ -24,11 +27,34 @@ def run_nodes_container(nodes):
     return proc
 
 def run_eval_container():
-    proc = subprocess.Popen('docker run --gpus all --rm -it -v {}:/root/:z -v {}:/mountdata/ -n isl-bcfl_localnet tony92151/py-abci python3 /root/py-app/eval/eval.py -config /root/py-app/config/config.ini'.format(sys.abspath("./script"), sys.abspath("./data")), shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen('docker run --gpus all --rm -it -v {}:/root/:z -v {}:/mountdata/ -n isl-bcfl_localnet tony92151/py-abci python3 /root/py-app/eval/eval.py -config /root/py-app/config/config.ini'.format(os.path.abspath("./script"), os.path.abspath("./data")), shell=True, stdout=subprocess.PIPE)
     return proc
+#############################################
+def send_create_task_TX(max_iteration=10):
+    proc = subprocess.Popen('docker run --rm -it -v {}:/root/:z tony92151/py-abci python3 /root/py-app/utils.py -config /root/py-app/config/config.ini > FIRSTMOD.txt'.format(os.path.abspath("./script")), shell=True, stdout=subprocess.PIPE)
+    proc.wait()
 
-def run_echo():
-    proc = subprocess.Popen("echo asdasd $pwd", shell=True)
+    time.sleep(1)
+    client = ipfshttpclient.connect("/ip4/0.0.0.0/tcp/5001/http")
+
+    ipfs_model = client.add_str(open(os.path.abspath("./FIRSTMOD.txt"), "r").read())
+    print(ipfs_model) 
+
+    param = json.loads('{"type": "create_task","max_iteration": "","aggtimeout": 10,"weight":""}')
+    param["max_iteration"] = max_iteration
+    param["weight"] = ipfs_model
+
+    b64payload = base64.b64encode(json.dumps(param).encode('UTF-8')).decode('UTF-8')
+    print(b64payload)
+    
+    url = "http://localhost:26657"
+    payload = json.loads('{"jsonrpc":"2.0", "method": "broadcast_tx_sync", "params": "", "id": 1}')
+    payload["params"] = [b64payload]
+
+    # Adding empty header as parameters are being sent in payload
+    headers = {"Content-Type": "application/json"}
+    r = requests.post(url, data=json.dumps(payload), headers=headers)
+    print(json.dumps(r.content, indent=4, sort_keys=True))
     return proc
 
 def set_config_file(f):
@@ -42,15 +68,12 @@ def stop_network_container():
 def terminate_all_container():
     proc = subprocess.Popen('docker-compose -f ./docker-compose-py.yml down -v', shell=True, stdout=subprocess.PIPE)
     return proc
-
-def send_create_task_TX():
-    proc = subprocess.Popen("echo asdasd $pwd", shell=True)
-    return proc
-
+#############################################
 def move_result_to_save_folder():
     # move config.ini
     # move 
     return proc
+#############################################
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -69,32 +92,52 @@ if __name__ == "__main__":
     # set up config file
     p_config = set_config_file(con_path)
 
-    # launch ipfs container
+    # # launch ipfs container
     p_ipfs = run_ipfs_container()
     print("PID : ipfs : {}".format(p_ipfs.pid))
-    time.sleep(1)
+    time.sleep(5)
 
-    # launch network capture container
-    p_net = run_network_container()
-    print("PID : network : {}".format(p_net.pid))
-    time.sleep(1)
+    # # launch network capture container
+    # p_net = run_network_container()
+    # print("PID : network : {}".format(p_net.pid))
+    # time.sleep(1)
 
     # launch network capture container
     p_vnodes = run_vlaidatror_nodes_container()
     print("PID : vlaidatror_nodes : {}".format(p_vnodes.pid))
     time.sleep(1)
 
-    # launch scalble-nodes container
+    # # launch scalble-nodes container
     if not con.bcfl.get_scale_nodes() == 0:
         print("Scale node : {}".format(con.bcfl.get_scale_nodes()))
         p_snodes = run_nodes_container(con.bcfl.get_scale_nodes())
         print("PID : scale_nodes : {}".format(p_snodes.pid))
         time.sleep(1)
 
-    # time.sleep(30)
-    # send create-task TX to strat trining.
+    # make sure all node are sycn done
+    time.sleep(30)
+
+    #send create-task TX to strat trining.
+    # send_create_task_TX(con.trainer.get_max_iteration())
 
     # check whether training process is finish
+    path = os.path.abspath("./script/py-app/save/")
+    if not os.path.exists(path):
+        os.mkdir(path)
+
+    check = 0
+    for i in tqdm(range(con.trainer.get_max_iteration())):
+        time.sleep(0.5)
+        while True:
+            l = len(glob.glob(path+"/*")) 
+            if l>check:
+                check+=1
+                break
+            else:
+                time.sleep(5)
+
+
+
 
     # launch eval container
     #p_eval = run_eval_container()
@@ -103,7 +146,7 @@ if __name__ == "__main__":
     #p_save = move_result_to_save_folder()
 
     # terminate all container
-    time.sleep(30)
+    time.sleep(10)
     p_t = terminate_all_container()
     p_t.wait()
     print("Done\n")

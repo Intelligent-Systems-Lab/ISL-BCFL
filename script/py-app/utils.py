@@ -43,5 +43,6 @@ if __name__ == "__main__":
     elif con.trainer.get_dataset() == "mnist_fedavg":
         Model = Model_mnist_fedavg
 
-    with open("/root/FIRSTMOD.txt", "w") as file:
-        file.write(fullmodel2base64(Model()))
+    # with open("/root/FIRSTMOD.txt", "w") as file:
+    #     file.write(fullmodel2base64(Model()))
+    print(fullmodel2base64(Model()))

@@ -65,6 +65,13 @@ class config_eval:
     def get_title(self):
         return self.config["title"]
 
+class config_agg:
+    def __init__(self, config):
+        self.config = dict(config._sections["aggregator"])
+
+    def get_threshold(self):
+        return self.config["threshold"]
+
 
 class Configer():
     def __init__(self, configfile):
@@ -74,3 +81,4 @@ class Configer():
         self.bcfl = config_bcfl(self.config)
         self.trainer = config_trainer(self.config)
         self.eval = config_eval(self.config)
+        self.agg = config_agg(self.config)

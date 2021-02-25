@@ -37,6 +37,8 @@ DATAPATH=/mountdata/$DATASET/"$DATASET"_train_$ID.csv
 
 CONFIG=/root/py-app/config/config_run.ini
 if [ -f "$CONFIG" ]; then
+    echo "config_run.ini exist."
+else
     CONFIG=/root/py-app/config/config.ini
 fi
 

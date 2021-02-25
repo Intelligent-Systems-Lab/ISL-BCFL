@@ -136,7 +136,7 @@ if __name__ == '__main__':
     # newtrain = trainer(log, args.dataset, newdb, newsender, devices=args.device)
     newtrain = trainer(log, con, newdb, newsender)
 
-    newcontroller = State_controller(log, newtrain, newagg, 4)
+    newcontroller = State_controller(log, newtrain, newagg, con.agg.get_threshold())
 
     # Create the app
     # app = ABCIServer(app=SimpleBCFL(newcontroller), port=args.p)

@@ -154,7 +154,7 @@ if __name__ == "__main__":
 
     print("Local training...\n")
     print("Prepare train dataloader...")
-    train_dataloader = getdataloader("/mountdata/{}/{}_train_0.csv".format(con.trainer.get_dataset(), con.trainer.get_dataset()), 512)
+    train_dataloader = getdataloader("/mountdata/{}/{}_train.csv".format(con.trainer.get_dataset(), con.trainer.get_dataset()), 512)
 
     local_models = local_training(train_dataloader, con)
 

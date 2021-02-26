@@ -22,7 +22,6 @@ else
     exit
 fi
 sleep 1
-
 if [ "$ID" = "0" ]
 then
     echo "Removing"
@@ -31,7 +30,7 @@ then
     tendermint testnet
 fi
 
-sleep 3
+sleep 5
 
 DATAPATH=/mountdata/$DATASET/"$DATASET"_train_$ID.csv
 
@@ -57,29 +56,36 @@ then
 
 else 
     sleep 2
-    rm -r /root/.tendermint
-    tendermint init
+
+    DOCKERINFO=$(curl -s --unix-socket /run/docker.sock http://docker/containers/json)
+    HOSTNAME=$(cat /etc/hostname)
+
+    ID=$(python -c "import sys, json; print([i[\"Names\"][0][1:].split(\"_\")[-1] for i in json.loads(sys.argv[1]) if sys.argv[2] in i[\"Id\"]][0])" "$DOCKERINFO" "$HOSTNAME")
+    export ID=$(($ID+4))
+
+    TMHOME="/mytestnet/node_$ID"
+    mkdir -p $TMHOME
+
+    tendermint init --home $TMHOME
     # rm /root/.tendermint/config/config.toml
-    rm /root/.tendermint/config/genesis.json
+    rm $TMHOME/config/genesis.json
     # cp /tenconfig/mytestnet/node0/config/config.toml /root/.tendermint/config
-    cp /tenconfig/mytestnet/node0/config/genesis.json /root/.tendermint/config
+    cp /tenconfig/mytestnet/node0/config/genesis.json $TMHOME/config
 
     PP=$(grep persistent_peers /tenconfig/mytestnet/node0/config/config.toml -w)
 
     # NODEID=$(python -c 'import random; print(random.randint(1,100000))')
-    sed -i "s#persistent_peers = \"\"#$PP#"  /root/.tendermint/config/config.toml
+    sed -i "s#persistent_peers = \"\"#$PP#"  $TMHOME/config/config.toml
     # tendermint node --proxy_app kvstore
     # python /root/py-app/bcfl.py -dataset $DATAPATH 
     # export ID=0
 
     # Get container name by query from docker socket
-    DOCKERINFO=$(curl -s --unix-socket /run/docker.sock http://docker/containers/json)
-    HOSTNAME=$(cat /etc/hostname)
     
-    export ID=$(python -c "import sys, json; print([i[\"Names\"][0][1:].split(\"_\")[-1] for i in json.loads(sys.argv[1]) if sys.argv[2] in i[\"Id\"]][0])" "$DOCKERINFO" "$HOSTNAME")
-
     # python -c $'import sys, json;j=json.loads(sys.argv[1]);\nfor i in j: \n\tif i["Id"][:12] == sys.argv[2]: \n\t\t\tprint(i["Names"][0][1:].split("_")[-1])' $A 'ef15fce24dad'
+    echo "Start app"
+    sleep $(python -c 'import random;print(random.randint(0,3))')
     python -u /root/py-app/bcfl.py -config $CONFIG &
-    tendermint node
+    tendermint node --home $TMHOME
     # echo $hostname
 fi

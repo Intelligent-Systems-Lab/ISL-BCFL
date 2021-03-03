@@ -45,6 +45,10 @@ if [ "$MODE" = "core" ]
 then
     export TMHOME="/tenconfig/mytestnet/node$ID"
 
+    NUMBEROFGPU=$(python3 -c "import torch; print(torch.cuda.device_count())")
+
+    export CUDA_VISIBLE_DEVICES=$(($ID % $NUMBEROFGPU))
+
     rm -r /root/logs
     mkdir -p /root/logs
 
@@ -62,6 +66,10 @@ else
 
     ID=$(python -c "import sys, json; print([i[\"Names\"][0][1:].split(\"_\")[-1] for i in json.loads(sys.argv[1]) if sys.argv[2] in i[\"Id\"]][0])" "$DOCKERINFO" "$HOSTNAME")
     export ID=$(($ID+4))
+
+    NUMBEROFGPU=$(python3 -c "import torch; print(torch.cuda.device_count())")
+
+    export CUDA_VISIBLE_DEVICES=$(($ID % $NUMBEROFGPU))
 
     TMHOME="/mytestnet/node_$ID"
     mkdir -p $TMHOME

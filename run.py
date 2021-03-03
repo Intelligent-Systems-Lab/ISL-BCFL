@@ -62,17 +62,28 @@ def set_config_file(f):
     return proc
 
 def stop_network_container():
-    proc = subprocess.Popen('docker-compose -f ./docker-compose-py.yml stop ipfsA', shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen('docker-compose -f ./docker-compose-py.yml stop tshark', shell=True, stdout=subprocess.PIPE)
     return proc
 
 def terminate_all_container():
     proc = subprocess.Popen('docker-compose -f ./docker-compose-pygpu.yml down -v', shell=True, stdout=subprocess.PIPE)
     return proc
 #############################################
-def move_result_to_save_folder():
-    # move config.ini
+# def run_network_analyzer():
+#     python network_analysiser.py $(pwd)/network_08_13_34.pcap $(pwd)/pcap.jpg $(pwd)/pcap2.jpg
+#     proc = subprocess.Popen(, shell=True, stdout=subprocess.PIPE)
+#     return proc
+
+def move_result_to_save_folder(path):
+    _ = subprocess.Popen('mv ./script/py-app/result.jpg {}'.format(path), shell=True, stdout=subprocess.PIPE)
+    _ = subprocess.Popen('mv ./script/py-app/config/config_run.ini {}'.format(path), shell=True, stdout=subprocess.PIPE)
+    _ = subprocess.Popen('mv ./script/py-app/*.json {}'.format(path), shell=True, stdout=subprocess.PIPE)
+    _ = subprocess.Popen('mv ./network/*.pcap {}'.format(path), shell=True, stdout=subprocess.PIPE)
+    # _ = subprocess.Popen('mv ./network/pcap*.jpg {}'.format(path), shell=True, stdout=subprocess.PIPE)
+    _ = subprocess.Popen('rm -rf ./script/py-app/save', shell=True, stdout=subprocess.PIPE)
+
     # move 
-    return proc
+    # return proc
 #############################################
 
 if __name__ == "__main__":
@@ -86,6 +97,11 @@ if __name__ == "__main__":
         exit()
 
     con_path = os.path.abspath(args.config)
+    outpath_path = os.path.abspath(args.output)
+
+    if not os.path.exists(outpath_path):
+        os.makedirs(outpath_path)
+
     print("Read config: {}".format(con_path))
     con = Configer(con_path)
 
@@ -136,19 +152,25 @@ if __name__ == "__main__":
             else:
                 time.sleep(5)
 
-
-
+    # close run_network_container
+    # _ = stop_network_container()
+    # time.sleep(10)
 
     # launch eval container
     p_eval = run_eval_container()
     p_eval.wait()
     print("Eval done.\n")
 
-    # move all result to save_path
-    #p_save = move_result_to_save_folder()
+    # run network analyzer
+    # _ = run_network_analyzer()
+
+    
 
     # terminate all container
     time.sleep(10)
     p_t = terminate_all_container()
     p_t.wait()
+
+    # move all result to save_path
+    p_save = move_result_to_save_folder(outpath_path)
     print("Done.\n")

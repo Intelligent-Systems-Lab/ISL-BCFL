@@ -31,6 +31,9 @@ class config_trainer:
     def get_dataset(self):
         return self.config["dataset"]
 
+    def get_dataset_path(self):
+        return self.config["dataset_path"]
+
     def get_local_bs(self) -> int:
         return int(self.config["local_bs"])
 

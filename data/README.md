@@ -1,5 +1,15 @@
 # How to create dataset for BCFL
 
+## Femnint
+
+Make a dataset from [leaf](https://github.com/TalwalkarLab/leaf.git).
+
+and creat a folder ```femnist```, then copy ```/train``` and ```/test``` in it.
+
+```bash=
+python femnist_create.py --data $(pwd)/femnist --n 100
+```
+
 ## Mnist
 
 ```bash=

@@ -4,6 +4,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader, TensorDataset, Dataset
 from torch.utils.data.sampler import SubsetRandomSampler
 import torch.nn.functional as F
+from torchvision.models.vgg import vgg16
 import pandas as pd
 import random
 import numpy as np
@@ -127,3 +128,34 @@ class Model_mnist_fedavg(nn.Module):
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
+
+# def Model_femnist():
+#     model = vgg13()
+#     model.classifier._modules['3'] = nn.Linear(4096, 512)
+#     model.classifier._modules['6'] = nn.Linear(512, 62)
+#     model.features._modules['0'] = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+#     return model
+
+class Model_femnist(nn.Module):
+    def __init__(self):
+        super(Model_femnist, self).__init__()
+        self.cnn = nn.Sequential(nn.Conv2d(in_channels=1, out_channels=32, kernel_size=5),
+                                     nn.ReLU(inplace=True),
+                                     nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5),
+                                     nn.ReLU(inplace=True),
+                                     nn.MaxPool2d(kernel_size=2),
+                                     nn.Dropout(0.25),
+                                     nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3),
+                                     nn.ReLU(inplace=True),
+                                     nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3),
+                                     nn.ReLU(inplace=True),
+                                     nn.MaxPool2d(kernel_size=2, stride=2),
+                                     nn.Dropout(0.25))
+        self.classifier = nn.Sequential(nn.Linear(576, 256),
+                                       nn.Dropout(0.5),
+                                       nn.Linear(256, 62))
+    def forward(self, x):
+        x = self.cnn(x)
+        x = x.view(x.size(0), -1) # flatten layer
+        x = self.classifier(x)
+        return x

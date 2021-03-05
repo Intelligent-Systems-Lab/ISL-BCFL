@@ -27,6 +27,8 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader):
         Model = Model_mnist
     elif config.trainer.get_dataset() == "mnist_fedavg":
         Model = Model_mnist_fedavg
+    elif config.trainer.get_dataset() == "femnist":
+        Model = Model_femnist
     # model_ = Model()
 
     model = Model()
@@ -90,7 +92,7 @@ class trainer:
         # self.local_ep = self.config.trainer.get_local_ep()
         self.dbHandler = dbHandler
 
-        dset = "/mountdata/{}/{}_train_<ID>.csv".format(self.config.trainer.get_dataset(), self.config.trainer.get_dataset()).replace("<ID>", os.getenv("ID"))
+        dset = "/mountdata/{}/{}_train_<ID>.csv".format(self.config.trainer.get_dataset_path(), self.config.trainer.get_dataset()).replace("<ID>", os.getenv("ID"))
         self.dataloader = getdataloader(dset, batch=self.local_bs)
         # self.dataloader = None
         self.sender = sender

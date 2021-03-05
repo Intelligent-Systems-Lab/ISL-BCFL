@@ -39,7 +39,7 @@ docker-compose -f ./docker-compose-py.yml down -v
 # GPU
 docker-compose -f ./docker-compose-pygpu.yml up ipfsA 
 docker-compose -f ./docker-compose-pygpu.yml up tshark
-docker-compose -f ./docker-compose-pygpu.yml up ipfsA node0 node1 node2 node3
+docker-compose -f ./docker-compose-pygpu.yml up node0 node1 node2 node3
 
 docker-compose -f ./docker-compose-pygpu.yml down -v
 ```
@@ -51,7 +51,7 @@ After training, terminate "tshark" program manually. The ```.pcap``` file will b
 ```bash=
 # create new model
 cd <path to repo>/script/py-app
-docker run --rm -it -v $(pwd):/root/:z tony92151/py-abci python3 /root/utils.py -config /root/config/config.ini
+docker run --rm -it -v $(pwd)/script:/root/:z tony92151/py-abci python3 /root/py-app/utils.py -config /root/py-app/config/config.ini > FIRSTMOD.txt
 # sudo chown $(whoami)  FIRSTMOD.txt
 
 # Upload to ipfs
@@ -69,8 +69,8 @@ curl --header "Content-Type: application/json" -X POST --data "{\"jsonrpc\":\"2.
 
 ```bash=
 cd <path to repo>
-# This could take 50 minutes
-docker run --gpus all --rm -it -v $(pwd)/script/py-app:/root/:z -v $(pwd)/data:/mountdata/ -n isl-bcfl_localnet tony92151/py-abci python3 /root/eval/eval.py -config /root/config/config.ini
+# This could take 5 minutes
+docker run --gpus all --rm -it -v $(pwd)/script:/root/:z -v $(pwd)/data:/mountdata/ --network isl-bcfl_localnet tony92151/py-abci python3 -u /root/py-app/eval/eval.py -config /root/py-app/config/config.ini
 ```
 
 ## Network analysis

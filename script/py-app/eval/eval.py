@@ -67,6 +67,8 @@ def local_training(dataloder, con):
         Model = Model_mnist
     elif dataset == "mnist_fedavg":
         Model = Model_mnist_fedavg
+    elif dataset == "femnist":
+        Model = Model_femnist
     model_ = Model()
     # optimizer = optim.RMSprop(model_.parameters(), lr=0.001)
     # loss_function = nn.CrossEntropyLoss()
@@ -136,6 +138,8 @@ if __name__ == "__main__":
         Model = Model_mnist
     elif con.trainer.get_dataset() == "mnist_fedavg":
         Model = Model_mnist_fedavg
+    elif con.trainer.get_dataset() == "femnist":
+        Model = Model_femnist
     else:
         print("No model match")
         exit()
@@ -148,13 +152,13 @@ if __name__ == "__main__":
         model_ = base642fullmodel(m)
         bcfl_models.append(copy.deepcopy(model_))
     print("Prepare test dataloader...")
-    test_dataloader = getdataloader("/mountdata/{}/{}_test.csv".format(con.trainer.get_dataset(), con.trainer.get_dataset()), 512)
+    test_dataloader = getdataloader("/mountdata/{}/{}_test.csv".format(con.trainer.get_dataset_path(), con.trainer.get_dataset()), 512)
 
     bcfl_result = acc_plot(bcfl_models, test_dataloader, con.trainer.get_device())
 
     print("Local training...\n")
     print("Prepare train dataloader...")
-    train_dataloader = getdataloader("/mountdata/{}/{}_train.csv".format(con.trainer.get_dataset(), con.trainer.get_dataset()), 512)
+    train_dataloader = getdataloader("/mountdata/{}/{}_train.csv".format(con.trainer.get_dataset_path(), con.trainer.get_dataset()), 512)
 
     local_models = local_training(train_dataloader, con)
 

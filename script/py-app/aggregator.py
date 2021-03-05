@@ -34,6 +34,8 @@ def aggergate(logger, dbHandler, models, _round, sender, config):
             Model = Model_mnist
         elif config.trainer.get_dataset() == "mnist_fedavg":
             Model = Model_mnist_fedavg
+        elif config.trainer.get_dataset() == "femnist":
+            Model = Model_femnist
         model = Model()
         model = base642fullmodel(dbHandler.cat(m))
         model_list.append(copy.deepcopy(model))

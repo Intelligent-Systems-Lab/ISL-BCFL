@@ -65,7 +65,7 @@ def getdataloader(dset='./mnist_test.csv', batch=10):
     train = train.values.tolist()
     random.shuffle(train)
 
-    train = train[:int(0.8*len(train))]
+    # train = train[:int(0.8*len(train))]
 
     train_labels = np.array([i[0] for i in train])
     train_data = np.array([i[1:] for i in train])

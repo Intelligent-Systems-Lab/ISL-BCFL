@@ -61,6 +61,7 @@ if __name__ == '__main__':
 
     os.mkdir(os.path.join(path, "iid"))
     os.mkdir(os.path.join(path, "niid"))
+    os.mkdir(os.path.join(path, "niid","single_test"))
     
     print("Read data from : {}".format(train_path))    
     x_train, f_train, d_train = read_dir(train_path)
@@ -110,17 +111,26 @@ if __name__ == '__main__':
         df.to_csv(save_path, mode='w', index=False)
 
     ########################################################################
-    ## append niid test image into list and save ###########################
+    ## append niid test image into list and save mix and single ############
     for i in range(len(test_sampled_list)):
         writer = test_sampled_list[i][0]
         images = []
         for j in range(len(d_test[writer]["y"])):
             label = [d_test[writer]["y"][j]]
             image = image_invert(d_test[writer]["x"][j])
-            label = [int(i) for i in label]
+            label = [int(i)]
             img = label+image
             images.append(img)
         test_sampled_list[i][1].extend(images)
+
+    niid_path = os.path.join(path, "niid", "single_test")
+    print("Save test niid single data to : {}".format(niid_path))
+    for p in tqdm(range(len(test_sampled_list))):
+        df = pd.DataFrame(data=test_sampled_list[p][1])
+        df = df.rename(columns=get_dict_idx())
+        save_path = os.path.join(niid_path, "femnist_single_{}.csv".format(p))
+        df.to_csv(save_path, mode='w', index=False)
+    
 
     # mix 
     # [[label, ...], [label, ...], [label, ...], ... ]
@@ -156,10 +166,10 @@ if __name__ == '__main__':
         list_of_containt = []
         for k in range(62):
             Xp = iid_all_list[k]
-            u = math.floor(len(Xp) / num_package) * i
-            d = math.floor(len(Xp) / num_package) * (i + 1)
+            u = math.ceil(len(Xp) / num_package) * i
+            d = math.ceil(len(Xp) / num_package) * (i + 1)
             if i == (num_package - 1):
-                list_of_containt = list_of_containt + iid_all_list[k][u:]
+                list_of_containt = list_of_containt + iid_all_list[k][u:len(Xp)]
             else:
                 list_of_containt = list_of_containt + iid_all_list[k][u:d]
         random.shuffle(list_of_containt)

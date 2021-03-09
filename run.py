@@ -18,8 +18,8 @@ def run_network_container():
     proc = subprocess.Popen('docker-compose -f ./docker-compose-pygpu.yml up tshark', shell=True, stdout=subprocess.PIPE)
     return proc
 
-def run_vlaidatror_nodes_container():
-    proc = subprocess.Popen('docker-compose -f ./docker-compose-pygpu.yml up node0 node1 node2 node3', shell=True, stdout=subprocess.PIPE)
+def run_vlaidatror_nodes_container(logto=subprocess.PIPE):
+    proc = subprocess.Popen('docker-compose -f ./docker-compose-pygpu.yml up node0 node1 node2 node3', shell=True, stdout=logto)
     return proc
 
 def run_nodes_container(nodes):
@@ -27,7 +27,7 @@ def run_nodes_container(nodes):
     return proc
 
 def run_eval_container():
-    proc = subprocess.Popen('docker run --gpus all --rm -it -v {}:/root/:z -v {}:/mountdata/ --network isl-bcfl_localnet tony92151/py-abci python3 -u /root/py-app/eval/eval.py -config /root/py-app/config/config.ini'.format(os.path.abspath("./script"), os.path.abspath("./data")), shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen('docker run --gpus all --rm -it -v {}:/root/:z -v {}:/mountdata/ --network isl-bcfl_localnet tony92151/py-abci python3 -u /root/py-app/eval/eval.py -config /root/py-app/config/config_run.ini'.format(os.path.abspath("./script"), os.path.abspath("./data")), shell=True, stdout=subprocess.PIPE)
     return proc
 #############################################
 def send_create_task_TX(max_iteration=10):
@@ -69,6 +69,23 @@ def terminate_all_container():
     proc = subprocess.Popen('docker-compose -f ./docker-compose-pygpu.yml down -v', shell=True, stdout=subprocess.PIPE)
     return proc
 #############################################
+def roll_output(proc, file=None): 
+    # https://www.endpoint.com/blog/2015/01/28/getting-realtime-output-using-python
+    while True:
+        output = proc.stdout.readline()
+        if output == '' and proc.poll() is not None:
+            break
+        if output:
+            if file is None:
+                print(output.strip())
+            else:
+                f = open(file,"a")
+                f.write(output+"\n")
+                f.close() 
+            
+    rc = proc.poll()
+    print("End output, PID : {}".format(proc.pid))
+#############################################
 # def run_network_analyzer():
 #     python network_analysiser.py $(pwd)/network_08_13_34.pcap $(pwd)/pcap.jpg $(pwd)/pcap2.jpg
 #     proc = subprocess.Popen(, shell=True, stdout=subprocess.PIPE)
@@ -79,6 +96,9 @@ def move_result_to_save_folder(path):
     _ = subprocess.Popen('mv ./script/py-app/config/config_run.ini {}'.format(path), shell=True, stdout=subprocess.PIPE)
     _ = subprocess.Popen('mv ./script/py-app/*.json {}'.format(path), shell=True, stdout=subprocess.PIPE)
     _ = subprocess.Popen('mv ./network/*.pcap {}'.format(path), shell=True, stdout=subprocess.PIPE)
+    _ = subprocess.Popen('mv ./ndoelog.log {}'.format(path), shell=True, stdout=subprocess.PIPE)
+    _ = subprocess.Popen('mv ./acc_report.json {}'.format(path), shell=True, stdout=subprocess.PIPE)
+    acc_report.json
     # _ = subprocess.Popen('mv ./network/pcap*.jpg {}'.format(path), shell=True, stdout=subprocess.PIPE)
     _ = subprocess.Popen('rm -rf ./script/py-app/save', shell=True, stdout=subprocess.PIPE)
 
@@ -118,8 +138,8 @@ if __name__ == "__main__":
     # print("PID : network : {}".format(p_net.pid))
     # time.sleep(1)
 
-    # launch network capture container
-    p_vnodes = run_vlaidatror_nodes_container()
+    log = open(os.path.join(os.path.abspath("."),"ndoelog.log"), 'a')
+    p_vnodes = run_vlaidatror_nodes_container(logto=log)
     print("PID : vlaidatror_nodes : {}".format(p_vnodes.pid))
     time.sleep(5)
 
@@ -158,6 +178,7 @@ if __name__ == "__main__":
 
     # launch eval container
     p_eval = run_eval_container()
+    # roll_output(p_eval)
     p_eval.wait()
     print("Eval done.\n")
 

@@ -30,14 +30,25 @@ from options import Configer
 
 def acc_plot(models, dataloder, device="CPU"):
     accd = []
-    for model in tqdm(models):
+
+    dataloders = []
+    if not type(dataloder)==list:
+        for i in range(len(models)):
+            dataloders.append(dataloder)
+    else:
+        dataloders = dataloder
+
+    for i in tqdm(range(len(models))):
         ans = np.array([])
         res = np.array([])
+        model = copy.deepcopy(models[i])
         if device == "GPU":
             model.cuda()
 
+        
+
         model.eval()
-        for data, target in dataloder:
+        for data, target in dataloders[i]:
             # data = data.view(data.size(0),-1)
             data = data.float()
             if device == "GPU":
@@ -130,9 +141,6 @@ if __name__ == "__main__":
     file_ = open(reuslt, 'r')
     context = json.load(file_)
     file_.close()
-    lcontext = []
-    for i in context["data"]:
-        lcontext.append(i["base_result"])
 
     if con.trainer.get_dataset() == "mnist":
         Model = Model_mnist
@@ -144,34 +152,61 @@ if __name__ == "__main__":
         print("No model match")
         exit()
 
-    bcfl_models = []
-    print("Download...")
-    for i in lcontext:
-        m = client.cat(i).decode()
-        #model_ = Model()
-        model_ = base642fullmodel(m)
-        bcfl_models.append(copy.deepcopy(model_))
     print("Prepare test dataloader...")
-    test_dataloader = getdataloader("/mountdata/{}/{}_test.csv".format(con.trainer.get_dataset_path(), con.trainer.get_dataset()), 512)
+    test_dataloader = getdataloader("/mountdata/{}/{}_test.csv".format(con.trainer.get_dataset_path(), con.trainer.get_dataset()), 10)
+    single_test_dataloader = []
+    for i in range(con.bcfl.get_scale_nodes()+4):
+        dl = getdataloader("/mountdata/{}/single_test/{}_single_{}.csv".format(con.trainer.get_dataset_path(), con.trainer.get_dataset(), i), 10)
+        single_test_dataloader.append(dl)
 
-    bcfl_result = acc_plot(bcfl_models, test_dataloader, con.trainer.get_device())
+    bcfl_models = []
+    print("Generate acc report...")
+    lcontext = []
+    for i in range(len(context["data"])):
+        print("Round: {}".format(context["data"][i]["round"]))
+        time.sleep(0.5)
+        base_tmp = base642fullmodel(client.cat(context["data"][i]["base_result"]).decode())
+        b_acc = acc_plot([base_tmp], test_dataloader)[0]
+        context["data"][i]["base_acc"] = round(b_acc, 6)
+        
+        # This take to long, enable it if you want to know each incoming_model's acc
+        if False:
+            bases_tmp = []
+            dataloaders_tmp = []
+            for j in range(len(context["data"][i]["incoming_model"])):
+                time.sleep(0.2)
+                bases_tmp.append(base642fullmodel(client.cat(context["data"][i]["incoming_model"][j]["model"]).decode()))
+                if con.trainer.get_dataset_path().split("/")[-1] == "niid":
+                    dataloaders_tmp.append(single_test_dataloader[int(context["data"][i]["incoming_model"][j]["cid"])])
+                else:
+                    single_test_dloader = test_dataloader
 
-    print("Local training...\n")
-    print("Prepare train dataloader...")
-    train_dataloader = getdataloader("/mountdata/{}/{}_train.csv".format(con.trainer.get_dataset_path(), con.trainer.get_dataset()), 512)
+            single_accs = acc_plot(bases_tmp, dataloaders_tmp)
 
-    local_models = local_training(train_dataloader, con)
+            for j in range(len(context["data"][i]["incoming_model"])):
+                context["data"][i]["incoming_model"][j]["single_acc"] = round(single_accs[j], 6)
+    
+    with open('/root/py-app/acc_report.json', 'w') as f:
+        json.dump(context, f, indent=4)
 
-    local_result = acc_plot(local_models, test_dataloader, con.trainer.get_device())
+    # bcfl_result = acc_plot(bcfl_models, test_dataloader, con.trainer.get_device()).
+    bcfl_result = [i["base_acc"] for i in context["data"]]
+
+    # print("Local training...\n")
+    # print("Prepare train dataloader...")
+    # train_dataloader = getdataloader("/mountdata/{}/{}_train.csv".format(con.trainer.get_dataset_path(), con.trainer.get_dataset()), 512)
+
+    # local_models = local_training(train_dataloader, con)
+
+    # local_result = acc_plot(local_models, test_dataloader, con.trainer.get_device())
 
     plt.title(con.eval.get_title())
     plt.grid(True)
     plt.ylabel("Accuracy")
     plt.xlabel("Round")
     miter = con.trainer.get_max_iteration()
-    # plt.plot(range(10), bcfl_acc[:10], range(10), local_acc[:10])
     plt.plot(range(miter), bcfl_result[:miter], color='red', label='BCFL')
-    plt.plot(range(miter), local_result[:miter], color='green', label='LOCAL')
+    # plt.plot(range(miter), local_result[:miter], color='green', label='LOCAL')
     plt.legend()
 
     # plt.show()

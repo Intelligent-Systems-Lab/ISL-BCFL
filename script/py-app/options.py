@@ -1,5 +1,7 @@
 import configparser
 
+from .options.config_dgc import config_dgc
+
 
 class config_bcfl:
     def __init__(self, config):
@@ -85,3 +87,5 @@ class Configer():
         self.trainer = config_trainer(self.config)
         self.eval = config_eval(self.config)
         self.agg = config_agg(self.config)
+
+        self.dgc = config_dgc(self.config)

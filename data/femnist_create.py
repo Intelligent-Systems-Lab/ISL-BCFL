@@ -41,6 +41,144 @@ def read_dir(data_dir):
 def image_invert(img):
     return [int(255-i) for i in img]
 
+def mix_all_writers(data):
+    """
+    > input:
+    [ [writer1, [[label, ...], [label, ...], [label, ...], ... ]],
+      [writer2, [[label, ...], [label, ...], [label, ...], ... ]],
+       . 
+       .
+       .
+    ]
+
+    > output:
+    [[label, ...], [label, ...], [label, ...], ... ]
+    """
+    output = []
+    for i in range(len(data)):
+        for j in data[i][1]:
+            output.append(j)
+    random.shuffle (output)
+    return output
+
+def class_mix_data(data):
+    """
+    > input:
+    [[label, ...], [label, ...], [label, ...], ... ]
+
+    > output:
+    [ [[label, ...], [label, ...], [label, ...], ... ],     <- class 0
+      [[label, ...], [label, ...], [label, ...], ... ],     <- class 1
+       . 
+       .
+       .
+      [[label, ...], [label, ...], [label, ...], ... ],     <- class 61
+    ]
+    """
+    all_list = []
+    for i in range(62):
+        all_list.append([])
+    
+    for i in data:
+        all_list[i[0]].append(i) # append images by label
+
+    return all_list
+
+def niid_train_test(train_data, test_data, path):
+    
+    train_sampled_list = train_data
+    test_sampled_list = test_data
+
+    # save train non-iid data to csv files
+    niid_path = os.path.join(path, "niid")
+    print("Save train niid data to : {}".format(niid_path))
+    for p in tqdm(range(len(train_sampled_list))):
+        df = pd.DataFrame(data=train_sampled_list[p][1])
+        df = df.rename(columns=get_dict_idx())
+        save_path = os.path.join(niid_path, "femnist_train_{}.csv".format(p))
+        df.to_csv(save_path, mode='w', index=False)
+    ########################################################################
+    # save train non-iid data to csv files
+    niid_path = os.path.join(path, "niid", "single_test")
+    print("Save test niid single data to : {}".format(niid_path))
+    for p in tqdm(range(len(test_sampled_list))):
+        df = pd.DataFrame(data=test_sampled_list[p][1])
+        df = df.rename(columns=get_dict_idx())
+        save_path = os.path.join(niid_path, "femnist_single_{}.csv".format(p))
+        df.to_csv(save_path, mode='w', index=False)
+    ########################################################################
+    mix_test_data = mix_all_writers(test_sampled_list)
+    # save test non-iid data to csv files
+    niid_path = os.path.join(path, "niid")
+    save_path = os.path.join(niid_path, "femnist_test.csv")
+    print("Save test niid data to : {}".format(save_path))
+    df = pd.DataFrame(data=mix_test_data)
+    df = df.rename(columns=get_dict_idx())
+    df.to_csv(save_path, mode='w', index=False)
+
+
+def iid_train_test(train_data, test_data, number_of_client, path):
+    mix_train_data = mix_all_writers(train_data)
+    class_train_data = class_mix_data(mix_train_data)
+    """
+    images in each class separated in n chunk
+
+    [ [[[label, ...], [label, ...]], [[label, ...],[label, ...]],  ... ],     <- class 0, 2 images in a chunk
+      [[[label, ...], [label, ...]], [[label, ...],[label, ...]],  ... ],     <- class 1, 2 images in a chunk
+       . 
+       .
+       .
+      [[[label, ...], [label, ...]], [[label, ...],[label, ...]],  ... ],     <- class 61, 2 images in a chunk
+    ]
+    """
+    chunk_class_train_data = []
+    # for i in range(62):
+    #     chunk_class_train_data.append([])
+
+    for i in range(len(class_train_data)):
+        l = class_train_data[i]
+
+        chunked_list = []
+        for i in range(number_of_client):
+            chunked_list.append([])
+        
+        count = 0
+        for i in l:
+            chunked_list[count].append(i)
+            count += 1
+            if count >= (number_of_client-1):
+                count = 0
+            
+        random.shuffle(chunked_list)
+        chunk_class_train_data.append(chunked_list)
+    
+    packages = []
+    num_package = number_of_client
+    for i in range(num_package):
+        list_of_containt = []
+        for k in range(len(chunk_class_train_data)):
+            # print("{},{}".format(i,k))
+            # print(chunk_class_train_data[k][i])
+            list_of_containt = list_of_containt + chunk_class_train_data[k][i]
+        random.shuffle(list_of_containt)
+        packages.append(list_of_containt)
+
+    iid_path = os.path.join(path, "iid")
+    print("Save train iid data to : {}".format(iid_path))
+    for p in tqdm(range(len(packages))):
+        df = pd.DataFrame(data=packages[p])
+        df = df.rename(columns=get_dict_idx())
+        save_path = os.path.join(iid_path, "femnist_train_{}.csv".format(p))
+        df.to_csv(save_path, mode='w', index=False)
+    ########################################################################
+    mix_test_data = mix_all_writers(test_data)
+    # save test iid data to csv files
+    niid_path = os.path.join(path, "iid")
+    save_path = os.path.join(niid_path, "femnist_test.csv")
+    print("Save test iid data to : {}".format(save_path))
+    df = pd.DataFrame(data=mix_test_data)
+    df = df.rename(columns=get_dict_idx())
+    df.to_csv(save_path, mode='w', index=False)
 
 if __name__ == '__main__': 
     parser = argparse.ArgumentParser()
@@ -88,148 +226,46 @@ if __name__ == '__main__':
     test_sampled_list = train_sampled_list.copy()
     
     ########################################################################
-    ## append niid training image into list and save #######################
+    ## append train and test image into list  ##############################
     for i in range(len(train_sampled_list)):
         writer = train_sampled_list[i][0]
         images = []
         for j in range(len(d_train[writer]["y"])):
-            label = [d_train[writer]["y"][j]]
+            label = [int(d_train[writer]["y"][j])]
             image = image_invert(d_train[writer]["x"][j])
-            label = [int(i) for i in label]
+            # label = [int(i) for i in label]
             img = label+image
             images.append(img)
         train_sampled_list[i][1].extend(images)
 
-    
-    # save train non-iid data to csv files
-    niid_path = os.path.join(path, "niid")
-    print("Save train niid data to : {}".format(niid_path))
-    for p in tqdm(range(len(train_sampled_list))):
-        df = pd.DataFrame(data=train_sampled_list[p][1])
-        df = df.rename(columns=get_dict_idx())
-        save_path = os.path.join(niid_path, "femnist_train_{}.csv".format(p))
-        df.to_csv(save_path, mode='w', index=False)
-
-    ########################################################################
-    ## append niid test image into list and save mix and single ############
     for i in range(len(test_sampled_list)):
         writer = test_sampled_list[i][0]
         images = []
         for j in range(len(d_test[writer]["y"])):
-            label = [d_test[writer]["y"][j]]
+            label = [int(d_test[writer]["y"][j])]
             image = image_invert(d_test[writer]["x"][j])
-            label = [int(i)]
+            # label = [int(label)]
             img = label+image
             images.append(img)
         test_sampled_list[i][1].extend(images)
 
-    niid_path = os.path.join(path, "niid", "single_test")
-    print("Save test niid single data to : {}".format(niid_path))
-    for p in tqdm(range(len(test_sampled_list))):
-        df = pd.DataFrame(data=test_sampled_list[p][1])
-        df = df.rename(columns=get_dict_idx())
-        save_path = os.path.join(niid_path, "femnist_single_{}.csv".format(p))
-        df.to_csv(save_path, mode='w', index=False)
-    
+    # Both train and test data format:
+    # [ [writer1, [[label, ...], [label, ...], [label, ...], ... ]],
+    #   [writer2, [[label, ...], [label, ...], [label, ...], ... ]],
+    #    . 
+    #    .
+    #    .
+    # ]
 
-    # mix 
-    # [[label, ...], [label, ...], [label, ...], ... ]
-    test_sampled_mix = []
-    for i in range(len(test_sampled_list)):
-        for j in test_sampled_list[i][1]:
-            test_sampled_mix.append(j)
-    random.shuffle (test_sampled_mix)
-
-    # save test non-iid data to csv files
-    niid_path = os.path.join(path, "niid")
-    save_path = os.path.join(niid_path, "femnist_test.csv")
-    print("Save test niid data to : {}".format(save_path))
-    df = pd.DataFrame(data=test_sampled_mix)
-    df = df.rename(columns=get_dict_idx())
-    df.to_csv(save_path, mode='w', index=False)
+    print("Train images: {}".format(len(mix_all_writers(train_sampled_list))))
+    print("Test images: {}".format(len(mix_all_writers(test_sampled_list))))
 
     ########################################################################
-    ## append iid train image into list and save ###########################
-
-    iid_all_list = []
-
-    for i in range(62):
-        iid_all_list.append([])
-    
-    for i in range(len(train_sampled_list)):
-        for j in train_sampled_list[i][1]:
-                iid_all_list[j[0]].append(j)
-    
-    packages = []
-    num_package = number_of_client
-    for i in range(num_package):
-        list_of_containt = []
-        for k in range(62):
-            Xp = iid_all_list[k]
-            u = math.ceil(len(Xp) / num_package) * i
-            d = math.ceil(len(Xp) / num_package) * (i + 1)
-            if i == (num_package - 1):
-                list_of_containt = list_of_containt + iid_all_list[k][u:len(Xp)]
-            else:
-                list_of_containt = list_of_containt + iid_all_list[k][u:d]
-        random.shuffle(list_of_containt)
-        packages.append(list_of_containt)
-
-    iid_path = os.path.join(path, "iid")
-    print("Save train iid data to : {}".format(iid_path))
-    for p in tqdm(range(len(packages))):
-        df = pd.DataFrame(data=packages[p])
-        df = df.rename(columns=get_dict_idx())
-        save_path = os.path.join(iid_path, "femnist_train_{}.csv".format(p))
-        df.to_csv(save_path, mode='w', index=False)
-
+    ## process niid dataset ################################################
+    niid_train_test(train_sampled_list, test_sampled_list, path)
 
     ########################################################################
-    ## append iid test image into list and save ############################
+    ## process iid dataset #################################################
+    iid_train_test(train_sampled_list, test_sampled_list, number_of_client, path)
     
-    # test data is the same
-
-    # save test non-iid/iid data to csv files
-    iid_path = os.path.join(path, "iid")
-    save_path = os.path.join(iid_path, "femnist_test.csv")
-    print("Save test iid data to : {}".format(save_path))
-    df = pd.DataFrame(data=test_sampled_mix)
-    df = df.rename(columns=get_dict_idx())
-    df.to_csv(save_path, mode='w', index=False)
-
-
-    ########################################################################
-    ## append non-iid all image into list and save #########################
-
-    # same as iid training dataset
-
-    niid_all = []
-    for i in iid_all_list:
-        niid_all.extend(i)
-
-    random.shuffle(niid_all)
-
-    niid_path = os.path.join(path, "niid")
-    save_path = os.path.join(niid_path, "femnist_train.csv")
-    print("Save train non-iid data to : {}".format(save_path))
-    df = pd.DataFrame(data=niid_all)
-    df = df.rename(columns=get_dict_idx())
-    df.to_csv(save_path, mode='w', index=False)
-
-    ########################################################################
-    ## append iid all image into list and save #############################
-
-    iid_all = []
-    for i in iid_all_list:
-        iid_all.extend(i)
-
-    random.shuffle(iid_all)
-
-    iid_path = os.path.join(path, "iid")
-    save_path = os.path.join(iid_path, "femnist_train.csv")
-    print("Save train iid data to : {}".format(save_path))
-    df = pd.DataFrame(data=iid_all)
-    df = df.rename(columns=get_dict_idx())
-    df.to_csv(save_path, mode='w', index=False)
-
     print("Done")

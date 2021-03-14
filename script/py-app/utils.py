@@ -1,18 +1,22 @@
-import torch
-import pandas as pd
-import sys, os
-import time
 import base64
 import io
-# from models.eminst_model import Model
-# from models.mnist_fedavg import Model
+
 import argparse
+import pickle
 
 from options import Configer
 from models.models_select import *
 
 torch.nn.Module.dump_patches = True
 
+
+def object_serialize(d):
+    bd = pickle.dumps(d)
+    return base64.b64encode(bd).decode()
+
+def object_deserialize(s):
+    p = base64.b64decode(s)
+    return pickle.loads(p)
 
 def fullmodel2base64(model):
     buffer = io.BytesIO()

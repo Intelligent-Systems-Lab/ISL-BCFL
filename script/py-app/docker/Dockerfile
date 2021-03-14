@@ -1,4 +1,4 @@
-FROM floydhub/pytorch:1.2.0-gpu.cuda10cudnn7-py3.54
+FROM floydhub/pytorch:1.6.0-gpu.cuda10cudnn7-py3.56
 
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 684BA42D &&\
     curl https://bazel.build/bazel-release.pub.gpg | sudo apt-key add -

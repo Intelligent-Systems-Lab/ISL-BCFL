@@ -1,13 +1,14 @@
 from messages import AggregateMsg, UpdateMsg, InitMsg
-import json, os
+import json, os, copy
 
 
 class state:
-    def __init__(self, round_, agg_weight, base_result, selected_aggregator="", aggregation_timeout=3):
+    def __init__(self, round_, agg_gradient, base_gradient, base_result, aggregation_timeout=3):
         self.round = round_  # this round
-        self.agg_weight = agg_weight  # last round's incoming-models that aggregate to new base-model
+        self.agg_gradient = agg_gradient  # last round's incoming-models that aggregate to new base-model
+        self.gradient_result = base_gradient
         self.base_result = base_result  # base-model that aggregate from last round's incoming-models
-        self.incoming_model = []  # collection from this round
+        self.incoming_gradient = []  # collection from this round
         self.selection_nonce = 0
         self.aggregation_timeout = aggregation_timeout  # 3 block
         self.aggregation_timeout_count = 0
@@ -42,16 +43,16 @@ class State_controller:
             self.logger.info(
                 "Invalid aggregate cid, the aggregator id should be {}".format(self.get_last_state()["aggregator_id"]))
             return
-
+        new_base = self.trainer.opt_step_base_model(txmanager=self, base_gradient=data.get_result())
         state_data = state(round_=data.get_round(),
-                           agg_weight=data.get_weight(),
-                           base_result=data.get_result(),
+                           agg_gradient=data.get_weight(),
+                           base_gradient=data.get_result(),
+                           base_result=new_base,
                            aggregation_timeout=self.get_last_state()['aggregation_timeout'])
         self.states.append(eval(state_data.json()))
         self.aggregation_lock = False
         # make a point save here
         self.save_round_point(data.get_round())
-
 
     def update_pipe(self, tx):
         data = UpdateMsg(**tx)
@@ -59,14 +60,15 @@ class State_controller:
         if self.aggregation_lock:
             return
         if self.get_last_round() == data.get_round():
-            self.append_incoming_model({"model": data.get_weight(), "cid": data.get_cid()})
-            self.logger.info("Get incoming model, round: {}, total: {}".format(self.get_last_round(),
-                                                                               len(self.get_incoming_model())))
+            self.append_incoming_gradient({"gradient": data.get_weight(), "cid": data.get_cid()})
+            self.logger.info("Get incoming gradient, round: {}, total: {}".format(self.get_last_round(),
+                                                                                  len(self.get_incoming_model())))
 
     def create_task_pipe(self, tx):
         data = InitMsg(**tx)
         state_data = state(round_=0,
-                           agg_weight=[],
+                           agg_gradient=[],
+                           base_gradient="",
                            base_result=data.get_weight(),
                            aggregation_timeout=data.get_agg_timeout())
         self.states.append(eval(state_data.json()))
@@ -123,6 +125,9 @@ class State_controller:
             round_ = -1
         return round_
 
+    def set_last_base_model(self, model):
+        self.states[-1]["base_result"] = model
+
     def get_last_base_model(self):
         try:
             state_ = self.states[-1]["base_result"]  # init state have no element
@@ -130,11 +135,18 @@ class State_controller:
             state_ = ""
         return state_
 
-    def append_incoming_model(self, value):
-        self.states[-1]["incoming_model"].append(value)
+    def get_last_gradient_result(self):
+        try:
+            state_ = self.states[-1]["gradient_result"]  # init state have no element
+        except:
+            state_ = ""
+        return state_
 
-    def get_incoming_model(self):
-        return [i["model"] for i in self.states[-1]["incoming_model"]]
+    def append_incoming_gradient(self, value):
+        self.states[-1]["incoming_gradient"].append(value)
+
+    def get_incoming_gradient(self):
+        return [i["gradient"] for i in self.states[-1]["incoming_gradient"]]
 
     def get_last_nonce(self):
         try:
@@ -159,7 +171,23 @@ class State_controller:
         # self.logger.info(">>>>>>>> {}".format(self.get_last_round()))
         if len(self.states) >= self.max_iteration and self.get_last_round() >= self.max_iteration - 1:
             if not self.is_saved:
-                result = {"data": self.states}
+                # save model
+                import torch
+                if not os.path.exists("/root/py-app/save_models/"):
+                    os.mkdir("/root/py-app/save_models/")
+
+                states_ = copy.deepcopy(self.states)
+                for i in states_:
+                    model_save = "/root/py-app/save_models/round_{}.pt".format(i["round"])
+                    torch.save(i["base_result"].state_dict(), model_save)
+                    i["base_result"] = "round_{}.pt".format(i["round"])
+                    for j in i["incoming_gradient"]:
+                        model_save = "/root/py-app/save_models/round_{}_cid_{}.pt".format(i["base_result"], i["incoming_gradient"]["cid"])
+                        cid_model = self.trainer.opt_step_base_model(txmanager=self, base_gradient=j["gradient"])
+                        torch.save(i["base_result"].state_dict(), model_save)
+
+                # save json report
+                result = {"data": states_}
                 with open('/root/py-app/{}_round_result_{}.json'.format(self.max_iteration, os.getenv("ID")),
                           'w') as outfile:
                     json.dump(result, outfile, indent=4)
@@ -168,10 +196,8 @@ class State_controller:
             return False
         else:
             return True
-            
-    def save_round_point(self, round):
+
+    def save_round_point(self, round_):
         if not os.path.exists("/root/py-app/save/"):
             os.mkdir("/root/py-app/save/")
-        open("/root/py-app/save/round_{}".format(round), 'a').close()
-
-
+        open("/root/py-app/save/round_{}".format(round_), 'a').close()

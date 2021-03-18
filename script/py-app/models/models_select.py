@@ -11,6 +11,9 @@ import numpy as np
 import sys, os
 sys.setrecursionlimit(1000000)
 
+from dgc.optimizer import DGCSGD
+
+
 def get_optimizer(type_, model, lr):
     if type_ == 'sgd':
         return torch.optim.SGD(model.parameters(), lr=lr, momentum=0.5)
@@ -18,6 +21,8 @@ def get_optimizer(type_, model, lr):
         return torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
     elif type_ == 'rms':
         return torch.optim.RMSprop(model.parameters(), lr=lr)
+    elif type_ == 'DGCSGD':
+        return DGCSGD(model.parameters(), lr=lr)
 
 
 

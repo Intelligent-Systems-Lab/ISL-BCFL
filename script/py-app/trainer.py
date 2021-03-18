@@ -9,6 +9,7 @@ import base64
 import io, os
 import ipfshttpclient
 import time
+import copy
 import thread_handler as th
 from messages import AggregateMsg, UpdateMsg
 
@@ -32,16 +33,23 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader):
     # model_ = Model()
 
     model = Model()
-    try:
-        model = base642fullmodel(dbHandler.cat(bmodel))
-        # logger.info("ipfs success : {}".format(model[:20]))
-    except KeyboardInterrupt:
-        logger.info("ipfs fail")
+    if type(bmodel) == str:
+        try:
+            model = base642fullmodel(dbHandler.cat(bmodel))
+            # logger.info("ipfs success : {}".format(model[:20]))
+        except TimeoutError:
+            logger.info("ipfs fail")
+    else:
+        model = bmodel
+
     if device == "GPU":
         model.cuda()
 
     optimizer = get_optimizer(config.trainer.get_optimizer(), model=model, lr=lr)
     loss_function = get_criterion(config.trainer.get_lossfun(), device=device)
+
+    if config.trainer.get_optimizer() == "DGCSGD":
+        optimizer.memory.clean()
 
     model.train()
     # logger.info("Train model dataloader")
@@ -60,12 +68,16 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader):
 
             loss.backward()
 
-            optimizer.step()
+            optimizer.gradient_collect()
+            # optimizer.step()
 
     if device == "GPU":
         model.cpu()
 
-    dbres = dbHandler.add(fullmodel2base64(model))
+    optimizer.compress()
+    cg = optimizer.get_compressed_gradient()
+
+    dbres = dbHandler.add(object_serialize(cg))
     # logger.info("Train model result")
     # UpdateMsg.set_cid(os.getenv("ID"))
 
@@ -128,6 +140,33 @@ class trainer:
 
         else:
             return
+
+    def opt_step_base_model(self, txmanager, base_gradient):
+        # txmanager.get_last_gradient_result()
+        if self.config.trainer.get_dataset() == "mnist":
+            Model = Model_mnist
+        elif self.config.trainer.get_dataset() == "mnist_fedavg":
+            Model = Model_mnist_fedavg
+        elif self.config.trainer.get_dataset() == "femnist":
+            Model = Model_femnist
+        # model_ = Model()
+
+        model = Model()
+        if type(txmanager.get_last_base_model()) == str:
+            try:
+                model = base642fullmodel(self.dbHandler.cat(txmanager.get_last_base_model()))
+                txmanager.set_last_base_model(model.cpu())
+            except TimeoutError:
+                self.logger.info("ipfs fail")
+        else:
+            model = txmanager.get_last_base_model()
+
+        model.cpu()
+        optimizer = get_optimizer(self.config.trainer.get_optimizer(), model=model, lr=self.config.trainer.get_lr())
+        cg = optimizer.decompress(object_deserialize(self.dbHandler.cat(base_gradient)))
+        optimizer.set_gradient(cg)
+        optimizer.step()
+        return copy.deepcopy(model.cpu())
 
     # def trainRun(self, bmodel):
     #     print("Run train")

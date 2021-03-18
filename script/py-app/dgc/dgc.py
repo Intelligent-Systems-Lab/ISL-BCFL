@@ -1,10 +1,11 @@
 import torch
 import copy
+import math
 from compressor import Compressor
 
 
 class DGCCompressor(Compressor):
-    def __init__(self, compress_ratio):
+    def __init__(self, compress_ratio=0.5):
         super().__init__(average=True, tensors_size_are_same=False)
         self.compress_ratio = compress_ratio
         self.param_groups_c = None
@@ -15,50 +16,84 @@ class DGCCompressor(Compressor):
     def compress_by_layer(self, param):
         pass
 
-    def compress(self, mem):
-        memory = copy.deepcopy(mem)
-        compressed_mem = []
-        for tensor in memory:
-            shape = tensor.size()
+    def compress(self, mem, compress=True):
+        gradient_list = copy.deepcopy(mem)
+        agg_gradient = []
+        for i in range(len(gradient_list[0])):
+            result = torch.stack([j[i] for j in gradient_list]).sum(dim=0)
+            agg_gradient.append(result / len(gradient_list))
+
+        compressed_grad = []
+
+        for tensor in agg_gradient:
+            shape = list(tensor.size())
             tensor = tensor.flatten()
             numel = tensor.numel()
 
-            sample_shape = [max(1, int(numel * 0.01))]
-            sample_index = torch.empty(sample_shape).uniform_(0, numel).type(torch.long)
-            sample_tensor = tensor[sample_index]
+            tensor_a = tensor.abs()
+            tensor_a = tensor_a[tensor_a > 0]
 
-            k = max(1, int(numel * self.compress_ratio * 0.01))
-            vals, indices = torch.topk(sample_tensor.abs(), k)
+            idx = min(tensor_a.numel() - 1, max(0, math.floor(tensor_a.numel() * self.compress_ratio)))
 
-            thr = vals.min()
+            tensor_sort = sorted(range(len(tensor_a)), key=lambda k: tensor_a[k])
+            tensor_sort.reverse()
+
+            # print("len_tensor_a: {}, len_tensor_sort: {}, idx: {}".format(tensor_a.numel(), tensor_sort, idx))
+
+            if not len(tensor_sort) == 0:
+                thr = tensor_a[tensor_sort[idx]]
+            else:
+                thr = 1  # becauce all element are 0, set thr=1 make mask mask out everything
+
             mask = tensor.abs() >= thr
             selected = mask.sum()
-
-            for _ in range(10):
-                if selected > 1.3 * numel * self.compress_ratio:
-                    thr = 1.3 * thr
-                elif selected < 0.7 * numel * self.compress_ratio:
-                    thr = 0.7 * thr
-                else:
-                    break
-                mask = tensor.abs() >= thr
-                selected = mask.sum()
 
             indices, = torch.where(mask)
             values = tensor[indices]
 
-            tensor_compressed = values, indices
-            ctx = shape, mask, numel
+            tensor_compressed = values.tolist()  # , indices
+            ctx = shape, mask.tolist(), numel
+            # tensor boolean is to big
 
-            compressed_mem.append((tensor_compressed, ctx))
-        return compressed_mem
+            compressed_grad.append((tensor_compressed, ctx))
+        return compressed_grad
 
-    def decompress(self, new_mem, ctx):
+    def reformat_only(self, gradient):
+        agg_gradient = copy.deepcopy(gradient)
+        compressed_grad = []
+
+        for tensor in agg_gradient:
+            shape = list(tensor.size())
+            tensor = tensor.flatten()
+            numel = tensor.numel()
+
+            mask = tensor.abs() > 0
+            selected = mask.sum()
+
+            indices, = torch.where(mask)
+            values = tensor[indices]
+
+            tensor_compressed = values.tolist()  # , indices
+            ctx = shape, mask.tolist(), numel
+            # tensor boolean is to big
+
+            compressed_grad.append((tensor_compressed, ctx))
+        return compressed_grad
+
+    def decompress(self, mem):
+        agg_gradient = copy.deepcopy(mem)
         decompressed_mem = []
-        for i in new_mem:
-            values, indices = i
-            shape, _, numel = ctx
+        for j in agg_gradient:
+            new_mem, ctx = j
+            shape, mask, numel = ctx
+
+
+            values = torch.tensor(new_mem)
+            indices = torch.tensor([i for i in range(len(mask)) if mask[i]]).type(torch.long)
+            mask = torch.tensor(mask)
+
             tensor_decompressed = torch.zeros(numel, dtype=values.dtype, layout=values.layout, device=values.device)
             tensor_decompressed.scatter_(0, indices, values)
             decompressed_mem.append(tensor_decompressed.view(shape))
+
         return decompressed_mem

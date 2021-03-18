@@ -32,8 +32,8 @@ cg = optimizer.get_compressed_gradient()
 <send gradient>
 
 if <receive aggregated gradient>:
-    optimizer.decompress(new_gradient)
-    optimizer.set_gradient()
+    cg = optimizer.decompress(new_gradient)
+    optimizer.set_gradient(cg)
     optimizer.step()
 """
 
@@ -66,8 +66,8 @@ class DGCSGD(torch.optim.Optimizer):
     def gradient_collect(self):
         self.memory.add(self.param_groups)
 
-    def compress(self):
-        r = self.compressor.compress(self.memory.get_mem())
+    def compress(self, compress=True):
+        r = self.compressor.compress(self.memory.get_mem(), compress=True)
         self.memory.set_compressed_mem(r)
 
     def decompress(self, d):
@@ -76,12 +76,11 @@ class DGCSGD(torch.optim.Optimizer):
     def get_compressed_gradient(self):
         return self.memory.compressed_mem
 
-    def set_gradient(self):
-        decompressed_mem = copy.deepcopy(self.memory.decompressed_mem)
+    def set_gradient(self, cg):
+        agged_grad = copy.deepcopy(cg)
         for group in self.param_groups:
-            for p in group['params']:
-                p.grad = copy.deepcopy(decompressed_mem[0])
-                decompressed_mem = decompressed_mem[1:]
+            for p in range(len(group['params'])):
+                group['params'][p].grad = copy.deepcopy(agged_grad[p])
 
         # for group in len(self.param_groups):
         #     for p in len(self.param_groups[group]['params']):
@@ -152,7 +151,7 @@ class DGCMemory:
             g = []
             for group in d:
                 for p in group['params']:
-                    g.append(copy.deepcopy(d.grad))
+                    g.append(copy.deepcopy(p.grad))
             self.mem.append(g)
 
     def get_mem(self):

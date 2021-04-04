@@ -40,12 +40,12 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader):
         except TimeoutError:
             logger.info("ipfs fail")
     else:
-        model = bmodel
+        model = copy.deepcopy(bmodel)
 
     if device == "GPU":
         model.cuda()
 
-    optimizer = get_optimizer(config.trainer.get_optimizer(), model=model, lr=lr)
+    optimizer = get_optimizer(config.trainer.get_optimizer(), model=model, lr=lr, compress_ratio=config.dgc.get_compress_ratio())
     loss_function = get_criterion(config.trainer.get_lossfun(), device=device)
 
     if config.trainer.get_optimizer() == "DGCSGD":
@@ -53,7 +53,11 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader):
 
     model.train()
     # logger.info("Train model dataloader")
+    local_g =[]
     for i in range(local_ep):
+        if config.trainer.get_optimizer() == "DGCSGD":
+            optimizer.memory.clean()
+            
         for data, target in dataloader:
             if device == "GPU":
                 data = data.cuda()
@@ -69,12 +73,18 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader):
             loss.backward()
 
             optimizer.gradient_collect()
-            # optimizer.step()
+            optimizer.step()
+
+        # optimizer.compress(compress=False)
+        # local_g.append(optimizer.decompress(optimizer.get_compressed_gradient()))
 
     if device == "GPU":
         model.cpu()
 
-    optimizer.compress()
+    # optimizer.memory.clean()
+    # for i in local_g:
+    #     optimizer.memory.mem.append(i)
+    optimizer.compress(compress=True)
     cg = optimizer.get_compressed_gradient()
 
     dbres = dbHandler.add(object_serialize(cg))
@@ -127,12 +137,12 @@ class trainer:
 
     def train_manager(self, txmanager, tx):
         if tx["type"] == "aggregation" or tx["type"] == "create_task":
-            incomings = txmanager.get_last_state()["incoming_model"]
+            incomings = txmanager.get_last_state()["incoming_gradient"]
             try:
                 cids = [i["cid"] for i in incomings]
             except:
                 cid = []
-            if not os.getenv("ID") in cids and self.last_train_round + 1 == txmanager.get_last_round():
+            if (not os.getenv("ID") in cids) and (self.last_train_round + 1 == txmanager.get_last_round()):
                 self.logger.info("star training")
                 txmanager.aggregation_lock = False
                 self.train_run(txmanager.get_last_base_model(), txmanager.get_last_round())
@@ -152,21 +162,33 @@ class trainer:
         # model_ = Model()
 
         model = Model()
-        if type(txmanager.get_last_base_model()) == str:
-            try:
-                model = base642fullmodel(self.dbHandler.cat(txmanager.get_last_base_model()))
-                txmanager.set_last_base_model(model.cpu())
-            except TimeoutError:
-                self.logger.info("ipfs fail")
-        else:
-            model = txmanager.get_last_base_model()
+        model = copy.deepcopy(txmanager.get_last_base_model())
 
-        model.cpu()
-        optimizer = get_optimizer(self.config.trainer.get_optimizer(), model=model, lr=self.config.trainer.get_lr())
+        model.cpu().train()
+        optimizer = get_optimizer(self.config.trainer.get_optimizer(), model=model, lr=self.config.trainer.get_lr(), compress_ratio=self.config.dgc.get_compress_ratio())
+        # print("base_grad: {}".format(type(object_deserialize(self.dbHandler.cat(base_gradient)))))
         cg = optimizer.decompress(object_deserialize(self.dbHandler.cat(base_gradient)))
+        # print("cg: {}".format(type(cg)))
         optimizer.set_gradient(cg)
         optimizer.step()
         return copy.deepcopy(model.cpu())
+
+    def get_model_by_ipfs(self, key):
+        if self.config.trainer.get_dataset() == "mnist":
+            Model = Model_mnist
+        elif self.config.trainer.get_dataset() == "mnist_fedavg":
+            Model = Model_mnist_fedavg
+        elif self.config.trainer.get_dataset() == "femnist":
+            Model = Model_femnist
+        # model_ = Model()
+
+        model = Model()
+        model = base642fullmodel(self.dbHandler.cat(key))
+        # txmanager.set_last_base_model(model.cpu())
+        
+        return model
+        
+
 
     # def trainRun(self, bmodel):
     #     print("Run train")

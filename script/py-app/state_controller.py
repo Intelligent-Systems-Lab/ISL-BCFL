@@ -1,5 +1,5 @@
 from messages import AggregateMsg, UpdateMsg, InitMsg
-import json, os, copy
+import json, os, copy, time
 
 
 class state:
@@ -33,6 +33,8 @@ class State_controller:
 
         self.aggregation_lock = False
 
+        self.model_list = []
+
     def aggregate_pipe(self, tx):
         data = AggregateMsg(**tx)
         if self.get_last_round() == data.get_round():
@@ -44,10 +46,11 @@ class State_controller:
                 "Invalid aggregate cid, the aggregator id should be {}".format(self.get_last_state()["aggregator_id"]))
             return
         new_base = self.trainer.opt_step_base_model(txmanager=self, base_gradient=data.get_result())
+        self.model_list.append(copy.deepcopy(new_base))
         state_data = state(round_=data.get_round(),
                            agg_gradient=data.get_weight(),
                            base_gradient=data.get_result(),
-                           base_result=new_base,
+                           base_result=len(self.model_list)-1,
                            aggregation_timeout=self.get_last_state()['aggregation_timeout'])
         self.states.append(eval(state_data.json()))
         self.aggregation_lock = False
@@ -62,14 +65,15 @@ class State_controller:
         if self.get_last_round() == data.get_round():
             self.append_incoming_gradient({"gradient": data.get_weight(), "cid": data.get_cid()})
             self.logger.info("Get incoming gradient, round: {}, total: {}".format(self.get_last_round(),
-                                                                                  len(self.get_incoming_model())))
+                                                                                  len(self.get_incoming_gradient())))
 
     def create_task_pipe(self, tx):
         data = InitMsg(**tx)
+        self.model_list.append(copy.deepcopy(self.trainer.get_model_by_ipfs(data.get_weight())))
         state_data = state(round_=0,
                            agg_gradient=[],
-                           base_gradient="",
-                           base_result=data.get_weight(),
+                           base_gradient="0000",
+                           base_result=len(self.model_list)-1,
                            aggregation_timeout=data.get_agg_timeout())
         self.states.append(eval(state_data.json()))
         self.trainer.train_run(data.get_weight(), 0)
@@ -125,12 +129,12 @@ class State_controller:
             round_ = -1
         return round_
 
-    def set_last_base_model(self, model):
-        self.states[-1]["base_result"] = model
+    # def set_last_base_model(self, model):
+    #     self.states[-1]["base_result"] = model
 
     def get_last_base_model(self):
         try:
-            state_ = self.states[-1]["base_result"]  # init state have no element
+            state_ = self.model_list[self.states[-1]["base_result"]]  # init state have no element
         except:
             state_ = ""
         return state_
@@ -171,6 +175,7 @@ class State_controller:
         # self.logger.info(">>>>>>>> {}".format(self.get_last_round()))
         if len(self.states) >= self.max_iteration and self.get_last_round() >= self.max_iteration - 1:
             if not self.is_saved:
+                time.sleep(5)
                 # save model
                 import torch
                 if not os.path.exists("/root/py-app/save_models/"):
@@ -179,12 +184,12 @@ class State_controller:
                 states_ = copy.deepcopy(self.states)
                 for i in states_:
                     model_save = "/root/py-app/save_models/round_{}.pt".format(i["round"])
-                    torch.save(i["base_result"].state_dict(), model_save)
+                    torch.save(self.model_list[i["base_result"]].state_dict(), model_save)
                     i["base_result"] = "round_{}.pt".format(i["round"])
                     for j in i["incoming_gradient"]:
-                        model_save = "/root/py-app/save_models/round_{}_cid_{}.pt".format(i["base_result"], i["incoming_gradient"]["cid"])
+                        model_save = "/root/py-app/save_models/round_{}_cid_{}.pt".format(i["round"], j["cid"])
                         cid_model = self.trainer.opt_step_base_model(txmanager=self, base_gradient=j["gradient"])
-                        torch.save(i["base_result"].state_dict(), model_save)
+                        torch.save(cid_model.state_dict(), model_save)
 
                 # save json report
                 result = {"data": states_}
@@ -193,6 +198,8 @@ class State_controller:
                     json.dump(result, outfile, indent=4)
                 self.logger.info("Save to file....")
             self.is_saved = True
+            # Done
+            open("/root/py-app/save/Done", 'a').close()
             return False
         else:
             return True

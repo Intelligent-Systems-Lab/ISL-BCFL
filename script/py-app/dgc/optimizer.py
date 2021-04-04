@@ -1,6 +1,6 @@
 import torch
 import copy
-from dgc import DGCCompressor
+from dgc.dgc import DGCCompressor
 """
 Original usage:
 
@@ -15,7 +15,7 @@ optimizer.step()
 """
 DGCSGD usage:
 
-optimizer = DGCSGD(model.parameters(), lr=0.1)
+optimizer = DGCSGD(model.parameters(), lr=0.1, compress_ratio=0.5)
 
 optimizer.memory.clean()
 
@@ -32,8 +32,8 @@ cg = optimizer.get_compressed_gradient()
 <send gradient>
 
 if <receive aggregated gradient>:
-    cg = optimizer.decompress(new_gradient)
-    optimizer.set_gradient(cg)
+    dg = optimizer.decompress(new_gradient)
+    optimizer.set_gradient(dg)
     optimizer.step()
 """
 
@@ -41,7 +41,7 @@ if <receive aggregated gradient>:
 # copy from torch/optim/sgd.py
 class DGCSGD(torch.optim.Optimizer):
     def __init__(self, params, lr=None, momentum=0, dampening=0,
-                 weight_decay=0, nesterov=False):
+                 weight_decay=0, nesterov=False, compress_ratio=0.5):
         if lr is None and lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if momentum < 0.0:
@@ -50,7 +50,7 @@ class DGCSGD(torch.optim.Optimizer):
             raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
 
         self.memory = DGCMemory()
-        self.compressor = DGCCompressor(compress_ratio = 0.5)
+        self.compressor = DGCCompressor(compress_ratio = compress_ratio)
 
         defaults = dict(lr=lr, momentum=momentum, dampening=dampening,
                         weight_decay=weight_decay, nesterov=nesterov)
@@ -67,11 +67,13 @@ class DGCSGD(torch.optim.Optimizer):
         self.memory.add(self.param_groups)
 
     def compress(self, compress=True):
-        r = self.compressor.compress(self.memory.get_mem(), compress=True)
+        r = self.compressor.compress(self.memory.get_mem(), compress=compress)
         self.memory.set_compressed_mem(r)
 
     def decompress(self, d):
-        self.memory.set_decompressed_mem(self.compressor.decompress(d))
+        d = self.compressor.decompress(d)
+        self.memory.set_decompressed_mem(d)
+        return d
 
     def get_compressed_gradient(self):
         return self.memory.compressed_mem
@@ -80,7 +82,12 @@ class DGCSGD(torch.optim.Optimizer):
         agged_grad = copy.deepcopy(cg)
         for group in self.param_groups:
             for p in range(len(group['params'])):
-                group['params'][p].grad = copy.deepcopy(agged_grad[p])
+                #print("group: {}".format(type(group['params'][p].grad)))
+                #print("agged: {}".format(type(agged_grad[p])))
+                if group['params'][p].is_cuda:
+                    group['params'][p].grad = copy.deepcopy(agged_grad[p]).cuda()
+                else:
+                    group['params'][p].grad = copy.deepcopy(agged_grad[p]).cpu()
 
         # for group in len(self.param_groups):
         #     for p in len(self.param_groups[group]['params']):
@@ -99,6 +106,14 @@ class DGCSGD(torch.optim.Optimizer):
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
+                
+#         self.gradient_collect()
+#         self.zero_grad()
+#         self.compress(compress=False)
+#         cg = self.decompress(self.get_compressed_gradient())
+#         #optimizer.set_gradient(cg)
+#         #m = self.memory.get_mem()[0]
+#         self.set_gradient(cg)
 
         for group in self.param_groups:
             weight_decay = group['weight_decay']
@@ -126,7 +141,7 @@ class DGCSGD(torch.optim.Optimizer):
 
                 p.add_(d_p, alpha=-group['lr'])
 
-        self.memory.clean()
+        #self.memory.clean()
         return loss
 
 

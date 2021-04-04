@@ -1,6 +1,9 @@
 import configparser
+import sys
+# sys.path.append('../option')
+# print(sys.path)
 
-# from .options.config_dgc import config_dgc
+from option.dgc import config_dgc
 
 
 class config_bcfl:
@@ -88,4 +91,4 @@ class Configer():
         self.eval = config_eval(self.config)
         self.agg = config_agg(self.config)
 
-        # self.dgc = config_dgc(self.config)
+        self.dgc = config_dgc(self.config)

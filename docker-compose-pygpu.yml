@@ -126,14 +126,18 @@ services:
         localnet:
   ##################################################
   tshark:
-      image: alpine:3.13
+      # image: alpine:3.13
       container_name: tshark
+      build:
+        context: ./network
+        dockerfile: Dockerfile
       volumes:
         # - ./ipfskey:/data/ipfs/ 
-        - ./network:/root
+        - ./network:/root/network
+        - ./script/py-app:/root:z
         # - ipfscon:/ipfscon
       entrypoint: /bin/sh
-      command: /root/networkentrypoint.sh
+      command: /root/network/networkentrypoint.sh
       network_mode: "host"
 
 volumes:

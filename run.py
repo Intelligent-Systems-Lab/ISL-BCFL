@@ -27,7 +27,8 @@ def run_nodes_container(nodes):
     return proc
 
 def run_eval_container():
-    proc = subprocess.Popen('docker run --gpus all --rm -it -v {}:/root/:z -v {}:/mountdata/ --network isl-bcfl_localnet tony92151/py-abci python3 -u /root/py-app/eval/eval.py -config /root/py-app/config/config_run.ini'.format(os.path.abspath("./script"), os.path.abspath("./data")), shell=True, stdout=subprocess.PIPE)
+    # proc = subprocess.Popen('docker run --gpus all --rm -it -v {}:/root/:z -v {}:/mountdata/ --network isl-bcfl_localnet tony92151/py-abci python3 -u /root/py-app/eval/eval.py -config /root/py-app/config/config_run.ini'.format(os.path.abspath("./script"), os.path.abspath("./data")), shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen('docker run --gpus all --rm -it -v {}:/root/:z -v {}:/mountdata/ tony92151/py-abci python3 -u /root/py-app/eval/eval.py -config /root/py-app/config/config_run.ini'.format(os.path.abspath("./script"), os.path.abspath("./data")), shell=True, stdout=subprocess.PIPE)
     return proc
 #############################################
 def send_create_task_TX(max_iteration=10):
@@ -40,7 +41,7 @@ def send_create_task_TX(max_iteration=10):
     ipfs_model = client.add_str(open(os.path.abspath("./FIRSTMOD.txt"), "r").read())
     print(ipfs_model) 
 
-    param = json.loads('{"type": "create_task","max_iteration": "","aggtimeout": 10,"weight":""}')
+    param = json.loads('{"type": "create_task","max_iteration": "","aggtimeout": 20,"weight":""}')
     param["max_iteration"] = max_iteration
     param["weight"] = ipfs_model
 
@@ -73,11 +74,11 @@ def roll_output(proc, file=None):
     # https://www.endpoint.com/blog/2015/01/28/getting-realtime-output-using-python
     while True:
         output = proc.stdout.readline()
-        if output == '' and proc.poll() is not None:
+        if proc.poll() is not None:
             break
         if output:
             if file is None:
-                print(output.strip())
+                print(output.decode('utf-8').splitlines())
             else:
                 f = open(file,"a")
                 f.write(output+"\n")
@@ -86,21 +87,23 @@ def roll_output(proc, file=None):
     rc = proc.poll()
     print("End output, PID : {}".format(proc.pid))
 #############################################
-# def run_network_analyzer():
-#     python network_analysiser.py $(pwd)/network_08_13_34.pcap $(pwd)/pcap.jpg $(pwd)/pcap2.jpg
-#     proc = subprocess.Popen(, shell=True, stdout=subprocess.PIPE)
-#     return proc
+def run_network_analyzer():
+    proc = subprocess.Popen('python3 network/network_analysiser.py $(pwd)/network/network_tmp $(pwd)/network/network_tmp/pcap.jpg $(pwd)/network/network_tmp/pcap2.jpg', shell=True, stdout=subprocess.PIPE)
+    # python network/network_analysiser.py $(pwd)/network/network_tmp $(pwd)/network/network_tmp/pcap.jpg $(pwd)/network/network_tmp/pcap2.jpg
+    # proc = subprocess.Popen(, shell=True, stdout=subprocess.PIPE)
+    return proc
 
-def move_result_to_save_folder(path):
-    _ = subprocess.Popen('mv ./script/py-app/result.jpg {}'.format(path), shell=True, stdout=subprocess.PIPE)
+def move_result_to_save_folder(con, path):
+    _ = subprocess.Popen('mv ./script/py-app/{} {}'.format(con.eval.get_output().split("/")[-1], path), shell=True, stdout=subprocess.PIPE)
     _ = subprocess.Popen('mv ./script/py-app/config/config_run.ini {}'.format(path), shell=True, stdout=subprocess.PIPE)
     _ = subprocess.Popen('mv ./script/py-app/*.json {}'.format(path), shell=True, stdout=subprocess.PIPE)
-    _ = subprocess.Popen('mv ./network/*.pcap {}'.format(path), shell=True, stdout=subprocess.PIPE)
+    _ = subprocess.Popen('mv ./network/network_tmp {}'.format(path), shell=True, stdout=subprocess.PIPE)
     _ = subprocess.Popen('mv ./ndoelog.log {}'.format(path), shell=True, stdout=subprocess.PIPE)
-    _ = subprocess.Popen('mv ./acc_report.json {}'.format(path), shell=True, stdout=subprocess.PIPE)
-    acc_report.json
-    # _ = subprocess.Popen('mv ./network/pcap*.jpg {}'.format(path), shell=True, stdout=subprocess.PIPE)
+    _ = subprocess.Popen('mv ./script/py-app/save_models {}'.format(path), shell=True, stdout=subprocess.PIPE)
+    # _ = subprocess.Popen('mv ./acc_report.json {}'.format(path), shell=True, stdout=subprocess.PIPE)
+    # _ = subprocess.Popen('mv ./network/network_tmp {}'.format(path), shell=True, stdout=subprocess.PIPE)
     _ = subprocess.Popen('rm -rf ./script/py-app/save', shell=True, stdout=subprocess.PIPE)
+    
 
     # move 
     # return proc
@@ -122,6 +125,10 @@ if __name__ == "__main__":
     if not os.path.exists(outpath_path):
         os.makedirs(outpath_path)
 
+    path_n = os.path.abspath("./network/network_tmp/")
+    if not os.path.exists(path_n):
+        os.mkdir(path_n)
+
     print("Read config: {}".format(con_path))
     con = Configer(con_path)
 
@@ -134,9 +141,9 @@ if __name__ == "__main__":
     time.sleep(1)
 
     # # launch network capture container
-    # p_net = run_network_container()
-    # print("PID : network : {}".format(p_net.pid))
-    # time.sleep(1)
+    p_net = run_network_container()
+    print("PID : network : {}".format(p_net.pid))
+    time.sleep(1)
 
     log = open(os.path.join(os.path.abspath("."),"ndoelog.log"), 'a')
     p_vnodes = run_vlaidatror_nodes_container(logto=log)
@@ -161,6 +168,11 @@ if __name__ == "__main__":
     if not os.path.exists(path):
         os.mkdir(path)
 
+    path2 = os.path.abspath("./script/py-app/save_models/")
+    if not os.path.exists(path2):
+        os.mkdir(path2)
+
+
     check = 0
     for i in tqdm(range(con.trainer.get_max_iteration())):
         time.sleep(0.5)
@@ -174,24 +186,41 @@ if __name__ == "__main__":
 
     # close run_network_container
     # _ = stop_network_container()
-    # time.sleep(10)
+    time.sleep(1)
+    open(path+"/capture_down", 'a').close()
+    # capture_down
+    time.sleep(30)
+
+    while not os.path.isfile(path + "/Done"):
+        time.sleep(5)
+        print("wait for saving...")
+
+    while not os.path.isfile(path + "/convert_down"):
+        time.sleep(5)
+        print("wait for convert...")
+
+    time.sleep(30)
+
+    p_t = terminate_all_container()
+    p_t.wait()
+
+    time.sleep(10)
 
     # launch eval container
     p_eval = run_eval_container()
-    # roll_output(p_eval)
+    roll_output(p_eval)
     p_eval.wait()
     print("Eval done.\n")
 
     # run network analyzer
-    # _ = run_network_analyzer()
-
-    
+    p_n = run_network_analyzer()
+    p_n.wait()
 
     # terminate all container
-    time.sleep(10)
-    p_t = terminate_all_container()
-    p_t.wait()
+    # time.sleep(10)
+    # p_t = terminate_all_container()
+    # p_t.wait()
 
     # move all result to save_path
-    p_save = move_result_to_save_folder(outpath_path)
+    p_save = move_result_to_save_folder(con, outpath_path)
     print("Done.\n")

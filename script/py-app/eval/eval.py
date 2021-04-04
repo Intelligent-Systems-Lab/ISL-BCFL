@@ -20,7 +20,7 @@ import io
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import json
-import ipfshttpclient
+# import ipfshttpclient
 
 from models.models_select import *
 from utils import *
@@ -31,8 +31,9 @@ from options import Configer
 def acc_plot(models, dataloder, device="CPU"):
     accd = []
 
-    dataloders = []
+    
     if not type(dataloder)==list:
+        dataloders = []
         for i in range(len(models)):
             dataloders.append(dataloder)
     else:
@@ -135,7 +136,7 @@ if __name__ == "__main__":
 
     con = Configer(args.config)
 
-    client = ipfshttpclient.connect(con.eval.get_ipfsaddr())
+    #client = ipfshttpclient.connect(con.eval.get_ipfsaddr())
 
     reuslt = "/root/py-app/{}_round_result_0.json".format(con.trainer.get_max_iteration())
     file_ = open(reuslt, 'r')
@@ -154,18 +155,22 @@ if __name__ == "__main__":
 
     print("Prepare test dataloader...")
     test_dataloader = getdataloader("/mountdata/{}/{}_test.csv".format(con.trainer.get_dataset_path(), con.trainer.get_dataset()), 10)
+    
     single_test_dataloader = []
-    for i in range(con.bcfl.get_scale_nodes()+4):
-        dl = getdataloader("/mountdata/{}/single_test/{}_single_{}.csv".format(con.trainer.get_dataset_path(), con.trainer.get_dataset(), i), 10)
-        single_test_dataloader.append(dl)
+    if con.trainer.get_dataset_path().split("/")[-1] == "niid":
+        for i in range(con.bcfl.get_scale_nodes()+4):
+            dl = getdataloader("/mountdata/{}/single_test/{}_single_{}.csv".format(con.trainer.get_dataset_path(), con.trainer.get_dataset(), i), 10)
+            single_test_dataloader.append(dl)
 
     bcfl_models = []
     print("Generate acc report...")
     lcontext = []
     for i in range(len(context["data"])):
         print("Round: {}".format(context["data"][i]["round"]))
-        time.sleep(0.5)
-        base_tmp = base642fullmodel(client.cat(context["data"][i]["base_result"]).decode())
+        # time.sleep(0.2)
+        base_tmp = Model()
+        base_tmp.load_state_dict(torch.load("/root/py-app/save_models/{}".format(context["data"][i]["base_result"])))
+        # base_tmp = base642fullmodel(client.cat(context["data"][i]["base_result"]).decode())
         b_acc = acc_plot([base_tmp], test_dataloader)[0]
         context["data"][i]["base_acc"] = round(b_acc, 6)
         
@@ -173,18 +178,20 @@ if __name__ == "__main__":
         if False:
             bases_tmp = []
             dataloaders_tmp = []
-            for j in range(len(context["data"][i]["incoming_model"])):
-                time.sleep(0.2)
-                bases_tmp.append(base642fullmodel(client.cat(context["data"][i]["incoming_model"][j]["model"]).decode()))
+            for j in range(len(context["data"][i]["incoming_gradient"])):
+                # time.sleep(0.2)
+                g_tmp = Model()
+                g_tmp.load_state_dict(torch.load("/root/py-app/save_models/round_{}_cid_{}.pt".format(context["data"][i]["round"], context["data"][i]["incoming_gradient"][j]["cid"])))
+                bases_tmp.append(copy.deepcopy(g_tmp))
                 if con.trainer.get_dataset_path().split("/")[-1] == "niid":
-                    dataloaders_tmp.append(single_test_dataloader[int(context["data"][i]["incoming_model"][j]["cid"])])
+                    dataloaders_tmp.append(single_test_dataloader[int(context["data"][i]["incoming_gradient"][j]["cid"])])
                 else:
-                    single_test_dloader = test_dataloader
+                    dataloaders_tmp.append(test_dataloader)
 
             single_accs = acc_plot(bases_tmp, dataloaders_tmp)
 
-            for j in range(len(context["data"][i]["incoming_model"])):
-                context["data"][i]["incoming_model"][j]["single_acc"] = round(single_accs[j], 6)
+            for j in range(len(context["data"][i]["incoming_gradient"])):
+                context["data"][i]["incoming_gradient"][j]["single_acc"] = round(single_accs[j], 6)
     
     with open('/root/py-app/acc_report.json', 'w') as f:
         json.dump(context, f, indent=4)

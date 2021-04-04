@@ -1,7 +1,7 @@
 import torch
 import copy
 import math
-from compressor import Compressor
+from dgc.compressor import Compressor
 
 
 class DGCCompressor(Compressor):
@@ -21,7 +21,8 @@ class DGCCompressor(Compressor):
         agg_gradient = []
         for i in range(len(gradient_list[0])):
             result = torch.stack([j[i] for j in gradient_list]).sum(dim=0)
-            agg_gradient.append(result / len(gradient_list))
+            #agg_gradient.append(result / len(gradient_list))
+            agg_gradient.append(result)
 
         compressed_grad = []
 
@@ -33,20 +34,33 @@ class DGCCompressor(Compressor):
             tensor_a = tensor.abs()
             tensor_a = tensor_a[tensor_a > 0]
 
-            idx = min(tensor_a.numel() - 1, max(0, math.floor(tensor_a.numel() * self.compress_ratio)))
-
-            tensor_sort = sorted(range(len(tensor_a)), key=lambda k: tensor_a[k])
-            tensor_sort.reverse()
-
-            # print("len_tensor_a: {}, len_tensor_sort: {}, idx: {}".format(tensor_a.numel(), tensor_sort, idx))
-
-            if not len(tensor_sort) == 0:
-                thr = tensor_a[tensor_sort[idx]]
+            if not len(tensor_a)==0:
+                tmin = min(tensor_a)
+                tmax = max(tensor_a)
             else:
-                thr = 1  # becauce all element are 0, set thr=1 make mask mask out everything
+                compress = False
 
-            mask = tensor.abs() >= thr
-            selected = mask.sum()
+            if compress:
+                if not len(tensor_a) == 0:
+                    for i in range(10):
+                        thr = (tmax + tmin) / 2
+                        mask = tensor.abs() >= thr
+                        selected = mask.sum()
+
+                        if selected > (tensor_a.numel() * min(self.compress_ratio + 0.05, 1)):
+                            tmin = thr
+                            continue
+                        if selected < (tensor_a.numel() * max(self.compress_ratio - 0.05, 0.01)):
+                            tmax = thr
+                            continue
+                        break
+                else:
+                    thr = 1  # becauce all element are 0, set thr=1 make mask mask out everything
+                    mask = tensor.abs() >= thr
+                    selected = mask.sum()
+            else:
+                mask = tensor.abs() > 0
+                #selected = mask.sum()
 
             indices, = torch.where(mask)
             values = tensor[indices]
@@ -95,5 +109,4 @@ class DGCCompressor(Compressor):
             tensor_decompressed = torch.zeros(numel, dtype=values.dtype, layout=values.layout, device=values.device)
             tensor_decompressed.scatter_(0, indices, values)
             decompressed_mem.append(tensor_decompressed.view(shape))
-
         return decompressed_mem

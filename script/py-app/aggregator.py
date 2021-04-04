@@ -43,12 +43,12 @@ def aggergate(logger, dbHandler, gradients, _round, sender, config):
         mem = compressor.decompress(object_deserialize(dbHandler.cat(m)))
         gradient_list.append(copy.deepcopy(mem))
 
-    agg_gradient = []
-    for i in range(len(gradient_list[0])):
-        result = torch.stack([j[i] for j in gradient_list]).sum(dim=0)
-        agg_gradient.append(result / len(gradient_list))
+    # agg_gradient = []
+    # for i in range(len(gradient_list[0])):
+    #     result = torch.stack([j[i] for j in gradient_list]).sum(dim=0)
+    #     agg_gradient.append(result / len(gradient_list))
 
-    new_gradient = compressor.reformat_only(agg_gradient)
+    new_gradient = compressor.compress(gradient_list, compress=False)
 
 
     # new_model_state = gradient_list[0].state_dict()
@@ -103,7 +103,10 @@ class aggregator:
         return True
 
     def aggergate_manager(self, txmanager, tx):
-        if tx["type"] == "aggregate_again" or (tx["type"] == "update" and len(txmanager.get_incoming_model()) >= txmanager.threshold):
+        if txmanager.aggregation_lock and (not tx["type"] == "aggregate_again"):
+            return
+
+        if tx["type"] == "aggregate_again" or (tx["type"] == "update" and len(txmanager.get_incoming_gradient()) >= txmanager.threshold):
             txmanager.aggregation_lock = True
             self.aggregator_selection(txmanager)
 
@@ -114,10 +117,10 @@ class aggregator:
             return
 
     def aggregator_selection(self, txmanager):
-        self.logger.info(">>>>>>>> nonce :{}, {}".format(txmanager.get_last_state()["selection_nonce"], type(txmanager.get_last_state()["selection_nonce"])))
-        self.logger.info("hash {} + {}".format(txmanager.get_last_base_model(), str(txmanager.get_last_state()["selection_nonce"])))
+        self.logger.info(">>>>>>>> nonce :{}".format(txmanager.get_last_state()["selection_nonce"]))
+        self.logger.info("hash {} + {}".format(txmanager.get_last_gradient_result(), str(txmanager.get_last_state()["selection_nonce"])))
 
-        self.hash.update((txmanager.get_last_base_model() + str(txmanager.get_last_state()["selection_nonce"])).encode())
+        self.hash.update((txmanager.get_last_gradient_result() + str(txmanager.get_last_state()["selection_nonce"])).encode())
         tmpsum = 0
         for j in self.hash.hexdigest():
             tmpsum += ord(j)

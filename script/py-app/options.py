@@ -59,6 +59,19 @@ class config_trainer:
 
     def get_max_iteration(self) -> int:
         return int(self.config["max_iteration"])
+    
+    # warmup
+    def get_max_lr(self) -> float:
+        return float(self.config["max_lr"])
+    
+    def get_min_lr(self) -> float:
+        return float(self.config["min_lr"])
+    
+    def get_base_step(self) -> int:
+        return int(self.config["base_step"])
+    
+    def get_end_step(self) -> int:
+        return int(self.config["end_step"])
 
 class config_eval:
     def __init__(self, config):

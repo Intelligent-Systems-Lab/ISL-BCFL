@@ -14,6 +14,7 @@ class state:
         self.aggregation_timeout_count = 0
         self.number_of_validator = 4
         self.aggregator_id = -1
+        self.train_lr = -1.0
 
     def json(self):
         return json.dumps(self.__dict__)
@@ -45,7 +46,7 @@ class State_controller:
             self.logger.info(
                 "Invalid aggregate cid, the aggregator id should be {}".format(self.get_last_state()["aggregator_id"]))
             return
-        new_base = self.trainer.opt_step_base_model(txmanager=self, base_gradient=data.get_result())
+        new_base = self.trainer.opt_step_base_model(txmanager=self, base_gradient=data.get_result(), round_ = self.get_last_round())
         self.model_list.append(copy.deepcopy(new_base))
         state_data = state(round_=data.get_round(),
                            agg_gradient=data.get_weight(),
@@ -163,6 +164,12 @@ class State_controller:
             self.states[-1]["selection_nonce"] = value
         except:
             pass
+    
+    def set_last_lr(self, value):
+        try:
+            self.states[-1]["train_lr"] = value
+        except:
+            pass
 
     def get_last_state(self):
         try:
@@ -188,7 +195,7 @@ class State_controller:
                     i["base_result"] = "round_{}.pt".format(i["round"])
                     for j in i["incoming_gradient"]:
                         model_save = "/root/py-app/save_models/round_{}_cid_{}.pt".format(i["round"], j["cid"])
-                        cid_model = self.trainer.opt_step_base_model(txmanager=self, base_gradient=j["gradient"])
+                        cid_model = self.trainer.opt_step_base_model(txmanager=self, base_gradient=j["gradient"], round_=i["round"])
                         torch.save(cid_model.state_dict(), model_save)
 
                 # save json report

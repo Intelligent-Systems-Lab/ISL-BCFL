@@ -17,12 +17,14 @@ from utils import *
 # from models.eminst_model import *
 from models.models_select import *
 import random
+from dgc.warmup import warmup
 
 
-def train(logger, dbHandler, config, bmodel, _round, sender, dataloader):
+def train(logger, dbHandler, config, bmodel, _round, sender, dataloader, lr):
     local_ep = config.trainer.get_local_ep()
     device = config.trainer.get_device()
-    lr = config.trainer.get_lr()
+    # lr = config.trainer.get_lr()
+    lr = lr
 
     if config.trainer.get_dataset() == "mnist":
         Model = Model_mnist
@@ -120,17 +122,26 @@ class trainer:
         self.sender = sender
         self.last_train_round = -1
 
+        self.warmup = warmup(max_lr=self.config.trainer.get_max_lr(), 
+                            min_lr=self.config.trainer.get_min_lr(), 
+                            base_step=self.config.trainer.get_base_step(),
+                            end_step=self.config.trainer.get_end_step())
+
+        self.config.trainer.get_max_lr()
+
         # self.lr = self.config.trainer.get_lr()
         # self.optimizer = self.config.trainer.get_optimizer()
 
     def train_run(self, bmodel_, round_):
+        lr = self.warmup.get_lr_from_step(round_)
         t = th.create_job(train, (self.logger,
                                   self.dbHandler,
                                   self.config,
                                   bmodel_,
                                   round_,
                                   self.sender,
-                                  self.dataloader
+                                  self.dataloader,
+                                  lr
                                   ))
         t.start()
         self.logger.info("Run done")
@@ -151,7 +162,7 @@ class trainer:
         else:
             return
 
-    def opt_step_base_model(self, txmanager, base_gradient):
+    def opt_step_base_model(self, txmanager, base_gradient, round_):
         # txmanager.get_last_gradient_result()
         if self.config.trainer.get_dataset() == "mnist":
             Model = Model_mnist
@@ -164,8 +175,10 @@ class trainer:
         model = Model()
         model = copy.deepcopy(txmanager.get_last_base_model())
 
+        lr = self.warmup.get_lr_from_step(round_)
+
         model.cpu().train()
-        optimizer = get_optimizer(self.config.trainer.get_optimizer(), model=model, lr=self.config.trainer.get_lr(), compress_ratio=self.config.dgc.get_compress_ratio())
+        optimizer = get_optimizer(self.config.trainer.get_optimizer(), model=model, lr=lr, compress_ratio=self.config.dgc.get_compress_ratio())
         # print("base_grad: {}".format(type(object_deserialize(self.dbHandler.cat(base_gradient)))))
         cg = optimizer.decompress(object_deserialize(self.dbHandler.cat(base_gradient)))
         # print("cg: {}".format(type(cg)))

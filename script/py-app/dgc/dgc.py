@@ -27,6 +27,7 @@ class DGCCompressor(Compressor):
         compressed_grad = []
 
         for tensor in agg_gradient:
+            tensor = tensor.cpu()
             shape = list(tensor.size())
             tensor = tensor.flatten()
             numel = tensor.numel()

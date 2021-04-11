@@ -12,9 +12,10 @@ import sys, os
 sys.setrecursionlimit(1000000)
 
 from dgc.optimizer import DGCSGD
+from fgc.optimizer import FGCSGD
 
 
-def get_optimizer(type_, model, lr, compress_ratio):
+def get_optimizer(type_, model, lr, compress_ratio=None, fusing_ratio=None):
     if type_ == 'sgd':
         return torch.optim.SGD(model.parameters(), lr=lr, momentum=0.5)
     elif type_ == 'adam':
@@ -23,6 +24,8 @@ def get_optimizer(type_, model, lr, compress_ratio):
         return torch.optim.RMSprop(model.parameters(), lr=lr)
     elif type_ == 'DGCSGD':
         return DGCSGD(model.parameters(), lr=lr, compress_ratio=compress_ratio)
+    elif type_ == 'FGCSGD':
+        return FGCSGD(model.parameters(), lr=lr, compress_ratio=compress_ratio, fusing_ratio=fusing_ratio)
 
 
 

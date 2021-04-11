@@ -182,21 +182,22 @@ class State_controller:
         # self.logger.info(">>>>>>>> {}".format(self.get_last_round()))
         if len(self.states) >= self.max_iteration and self.get_last_round() >= self.max_iteration - 1:
             if not self.is_saved:
-                time.sleep(5)
+                time.sleep(30)
                 # save model
-                import torch
-                if not os.path.exists("/root/py-app/save_models/"):
-                    os.mkdir("/root/py-app/save_models/")
-
                 states_ = copy.deepcopy(self.states)
-                for i in states_:
-                    model_save = "/root/py-app/save_models/round_{}.pt".format(i["round"])
-                    torch.save(self.model_list[i["base_result"]].state_dict(), model_save)
-                    i["base_result"] = "round_{}.pt".format(i["round"])
-                    for j in i["incoming_gradient"]:
-                        model_save = "/root/py-app/save_models/round_{}_cid_{}.pt".format(i["round"], j["cid"])
-                        cid_model = self.trainer.opt_step_base_model(txmanager=self, base_gradient=j["gradient"], round_=i["round"])
-                        torch.save(cid_model.state_dict(), model_save)
+                if int(os.getenv("ID")) == 0:
+                    import torch
+                    if not os.path.exists("/root/py-app/save_models/"):
+                        os.mkdir("/root/py-app/save_models/")
+
+                    for i in states_:
+                        model_save = "/root/py-app/save_models/round_{}.pt".format(i["round"])
+                        torch.save(self.model_list[i["base_result"]].state_dict(), model_save)
+                        i["base_result"] = "round_{}.pt".format(i["round"])
+                        for j in i["incoming_gradient"]:
+                            model_save = "/root/py-app/save_models/round_{}_cid_{}.pt".format(i["round"], j["cid"])
+                            cid_model = self.trainer.opt_step_base_model(txmanager=self, base_gradient=j["gradient"], round_=i["round"])
+                            torch.save(cid_model.state_dict(), model_save)
 
                 # save json report
                 result = {"data": states_}
@@ -206,7 +207,8 @@ class State_controller:
                 self.logger.info("Save to file....")
             self.is_saved = True
             # Done
-            open("/root/py-app/save/Done", 'a').close()
+            if int(os.getenv("ID")) == 0:
+                open("/root/py-app/save/Done", 'a').close()
             return False
         else:
             return True

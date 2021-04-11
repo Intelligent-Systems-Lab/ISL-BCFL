@@ -20,11 +20,11 @@ import random
 from dgc.warmup import warmup
 
 
-def train(logger, dbHandler, config, bmodel, _round, sender, dataloader, lr):
+def train(logger, dbHandler, config, bmodel, _round, sender, dataloader, lr, mome=None):
     local_ep = config.trainer.get_local_ep()
     device = config.trainer.get_device()
     # lr = config.trainer.get_lr()
-    lr = lr
+    # lr = lr
 
     if config.trainer.get_dataset() == "mnist":
         Model = Model_mnist
@@ -47,10 +47,12 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader, lr):
     if device == "GPU":
         model.cuda()
 
-    optimizer = get_optimizer(config.trainer.get_optimizer(), model=model, lr=lr, compress_ratio=config.dgc.get_compress_ratio())
+    optimizer = get_optimizer(config.trainer.get_optimizer(), model=model, lr=lr, compress_ratio=config.dgc.get_compress_ratio(),fusing_ratio =0.8)
     loss_function = get_criterion(config.trainer.get_lossfun(), device=device)
 
     if config.trainer.get_optimizer() == "DGCSGD":
+        optimizer.memory.clean()
+    elif config.trainer.get_optimizer() == "FGCSGD":
         optimizer.memory.clean()
 
     model.train()
@@ -58,6 +60,8 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader, lr):
     local_g =[]
     for i in range(local_ep):
         if config.trainer.get_optimizer() == "DGCSGD":
+            optimizer.memory.clean()
+        elif config.trainer.get_optimizer() == "FGCSGD":
             optimizer.memory.clean()
             
         for data, target in dataloader:
@@ -86,7 +90,10 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader, lr):
     # optimizer.memory.clean()
     # for i in local_g:
     #     optimizer.memory.mem.append(i)
-    optimizer.compress(compress=True)
+    if config.trainer.get_optimizer() == "FGCSGD" and _round > config.trainer.get_base_step():
+        optimizer.compress(mome=mome ,compress=True, fusing=True)
+    else:
+        optimizer.compress(compress=True)
     cg = optimizer.get_compressed_gradient()
 
     dbres = dbHandler.add(object_serialize(cg))
@@ -121,6 +128,7 @@ class trainer:
         # self.dataloader = None
         self.sender = sender
         self.last_train_round = -1
+        self.cg = None
 
         self.warmup = warmup(max_lr=self.config.trainer.get_max_lr(), 
                             min_lr=self.config.trainer.get_min_lr(), 
@@ -141,7 +149,8 @@ class trainer:
                                   round_,
                                   self.sender,
                                   self.dataloader,
-                                  lr
+                                  lr,
+                                  self.cg
                                   ))
         t.start()
         self.logger.info("Run done")
@@ -180,9 +189,9 @@ class trainer:
         model.cpu().train()
         optimizer = get_optimizer(self.config.trainer.get_optimizer(), model=model, lr=lr, compress_ratio=self.config.dgc.get_compress_ratio())
         # print("base_grad: {}".format(type(object_deserialize(self.dbHandler.cat(base_gradient)))))
-        cg = optimizer.decompress(object_deserialize(self.dbHandler.cat(base_gradient)))
+        self.cg = optimizer.decompress(object_deserialize(self.dbHandler.cat(base_gradient)))
         # print("cg: {}".format(type(cg)))
-        optimizer.set_gradient(cg)
+        optimizer.set_gradient(self.cg)
         optimizer.step()
         return copy.deepcopy(model.cpu())
 

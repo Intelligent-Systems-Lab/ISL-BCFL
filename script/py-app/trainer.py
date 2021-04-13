@@ -47,7 +47,20 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader, lr, mom
     if device == "GPU":
         model.cuda()
 
-    optimizer = get_optimizer(config.trainer.get_optimizer(), model=model, lr=lr, compress_ratio=config.dgc.get_compress_ratio(),fusing_ratio =0.8)
+    # optimizer = get_optimizer(config.trainer.get_optimizer())(  params=model.parameters(), 
+    #                                                             lr=lr, 
+    #                                                             dgc_momentum=config.dgc.get_momentum(),
+    #                                                             compress_ratio=config.dgc.get_compress_ratio(),
+    #                                                             fusing_ratio =config.dgc.get_fusing_ratio())
+    optimizer  = DGCSGD(params=model.parameters(), 
+                        lr=lr, 
+                        compress_ratio=config.dgc.get_compress_ratio())
+
+    if config.dgc.get_momentum_correction():
+        optimizer.memory_checkpoint_restore()
+    # optimizer = opt
+    # optimizer.reset_param(params= model.parameters(), lr=lr)
+
     loss_function = get_criterion(config.trainer.get_lossfun(), device=device)
 
     if config.trainer.get_optimizer() == "DGCSGD":
@@ -93,7 +106,12 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader, lr, mom
     if config.trainer.get_optimizer() == "FGCSGD" and _round > config.trainer.get_base_step():
         optimizer.compress(mome=mome ,compress=True, fusing=True)
     else:
+        # optimizer.compress(compress=True, momentum_correction=config.dgc.get_momentum_correction())
         optimizer.compress(compress=True)
+
+    if config.dgc.get_momentum_correction():
+        optimizer.memory_checkpoint_save()
+    
     cg = optimizer.get_compressed_gradient()
 
     dbres = dbHandler.add(object_serialize(cg))
@@ -128,14 +146,19 @@ class trainer:
         # self.dataloader = None
         self.sender = sender
         self.last_train_round = -1
-        self.cg = None
+        self.cg = None # last gradient as momentum
 
-        self.warmup = warmup(max_lr=self.config.trainer.get_max_lr(), 
+        self.warmup = warmup(max_lr=self.config .trainer.get_max_lr(), 
                             min_lr=self.config.trainer.get_min_lr(), 
                             base_step=self.config.trainer.get_base_step(),
                             end_step=self.config.trainer.get_end_step())
 
-        self.config.trainer.get_max_lr()
+        model = get_model(self.config.trainer.get_dataset())()
+        # self.opt = get_optimizer(self.config.trainer.get_optimizer())(params=model.parameters(),
+        #                                                             lr=1, 
+        #                                                             dgc_momentum=self.config.dgc.get_momentum(),
+        #                                                             compress_ratio=self.config.dgc.get_compress_ratio(), 
+        #                                                             fusing_ratio=self.config.dgc.get_fusing_ratio())
 
         # self.lr = self.config.trainer.get_lr()
         # self.optimizer = self.config.trainer.get_optimizer()
@@ -180,14 +203,16 @@ class trainer:
         elif self.config.trainer.get_dataset() == "femnist":
             Model = Model_femnist
         # model_ = Model()
-
+        
         model = Model()
         model = copy.deepcopy(txmanager.get_last_base_model())
 
         lr = self.warmup.get_lr_from_step(round_)
 
         model.cpu().train()
-        optimizer = get_optimizer(self.config.trainer.get_optimizer(), model=model, lr=lr, compress_ratio=self.config.dgc.get_compress_ratio())
+        optimizer = get_optimizer(self.config.trainer.get_optimizer())(
+                                                        params=model.parameters(), 
+                                                        lr=lr)
         # print("base_grad: {}".format(type(object_deserialize(self.dbHandler.cat(base_gradient)))))
         self.cg = optimizer.decompress(object_deserialize(self.dbHandler.cat(base_gradient)))
         # print("cg: {}".format(type(cg)))

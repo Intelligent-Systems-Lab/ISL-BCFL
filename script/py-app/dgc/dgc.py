@@ -5,11 +5,12 @@ from dgc.compressor import Compressor
 
 
 class DGCCompressor(Compressor):
-    def __init__(self, compress_ratio=0.5):
+    def __init__(self, compress_ratio=0.5, memory=None):
         super().__init__(average=True, tensors_size_are_same=False)
         self.compress_ratio = compress_ratio
         self.param_groups_c = None
-
+        self.memory = memory
+        
     def clean(self):
         self.param_groups_c = None
 
@@ -24,6 +25,11 @@ class DGCCompressor(Compressor):
         #     result = torch.stack([j[i] for j in gradient_list]).sum(dim=0)
         #     #agg_gradient.append(result / len(gradient_list))
         #     agg_gradient.append(result)
+
+        if momentum_correction:
+            agg_gradient = self.memory.compensate(mem)
+        else:
+            agg_gradient = mem
 
         compressed_grad = []
 
@@ -72,28 +78,9 @@ class DGCCompressor(Compressor):
             # tensor boolean is to big
 
             compressed_grad.append((tensor_compressed, ctx))
-        return compressed_grad
-
-    def reformat_only(self, gradient):
-        agg_gradient = copy.deepcopy(gradient)
-        compressed_grad = []
-
-        for tensor in agg_gradient:
-            shape = list(tensor.size())
-            tensor = tensor.flatten()
-            numel = tensor.numel()
-
-            mask = tensor.abs() > 0
-            selected = mask.sum()
-
-            indices, = torch.where(mask)
-            values = tensor[indices]
-
-            tensor_compressed = values.tolist()  # , indices
-            ctx = shape, mask.tolist(), numel
-            # tensor boolean is to big
-
-            compressed_grad.append((tensor_compressed, ctx))
+        
+        if momentum_correction:
+            self.memory.update(compressed_grad)
         return compressed_grad
 
     def decompress(self, mem):
@@ -112,3 +99,4 @@ class DGCCompressor(Compressor):
             tensor_decompressed.scatter_(0, indices, values)
             decompressed_mem.append(tensor_decompressed.view(shape))
         return decompressed_mem
+

@@ -15,18 +15,18 @@ sys.setrecursionlimit(1000000)
 from dgc.optimizer import DGCSGD
 from fgc.optimizer import FGCSGD
 
-
-def get_optimizer(type_, model, lr, compress_ratio=None, fusing_ratio=None):
+# def get_optimizer(type_, model, lr, compress_ratio=None, fusing_ratio=None):
+def get_optimizer(type_):
     if type_ == 'sgd':
-        return torch.optim.SGD(model.parameters(), lr=lr, momentum=0.5)
+        return torch.optim.SGD#(model.parameters(), lr=lr, momentum=0.5)
     elif type_ == 'adam':
-        return torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+        return torch.optim.Adam#(model.parameters(), lr=lr, weight_decay=1e-4)
     elif type_ == 'rms':
-        return torch.optim.RMSprop(model.parameters(), lr=lr)
+        return torch.optim.RMSprop#(model.parameters(), lr=lr)
     elif type_ == 'DGCSGD':
-        return DGCSGD(model.parameters(), lr=lr, compress_ratio=compress_ratio)
+        return DGCSGD#(model.parameters(), lr=lr, compress_ratio=compress_ratio)
     elif type_ == 'FGCSGD':
-        return FGCSGD(model.parameters(), lr=lr, compress_ratio=compress_ratio, fusing_ratio=fusing_ratio)
+        return FGCSGD#(model.parameters(), lr=lr, compress_ratio=compress_ratio, fusing_ratio=fusing_ratio)
 
 
 
@@ -40,6 +40,17 @@ def get_criterion(type_, device):
         return c.cuda()
     else:
         return c
+
+def get_model(type_):
+    if type_ == "mnist":
+        Model = Model_mnist
+    elif type_ == "mnist_fedavg":
+        Model = Model_mnist_fedavg
+    elif type_ == "femnist":
+        Model = Model_femnist
+    
+    return Model
+
 
 
 class MNISTDataset(Dataset):

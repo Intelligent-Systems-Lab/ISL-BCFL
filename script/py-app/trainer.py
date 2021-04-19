@@ -170,7 +170,12 @@ class trainer:
                             base_step=self.config.trainer.get_base_step(),
                             end_step=self.config.trainer.get_end_step())
 
-        self.config.trainer.get_max_lr()
+        model = get_model(self.config.trainer.get_dataset())()
+        # self.opt = get_optimizer(self.config.trainer.get_optimizer())(params=model.parameters(),
+        #                                                             lr=1, 
+        #                                                             dgc_momentum=self.config.dgc.get_momentum(),
+        #                                                             compress_ratio=self.config.dgc.get_compress_ratio(), 
+        #                                                             fusing_ratio=self.config.dgc.get_fusing_ratio())
 
         # self.lr = self.config.trainer.get_lr()
         # self.optimizer = self.config.trainer.get_optimizer()
@@ -215,14 +220,16 @@ class trainer:
         elif self.config.trainer.get_dataset() == "femnist":
             Model = Model_femnist
         # model_ = Model()
-
+        
         model = Model()
         model = copy.deepcopy(txmanager.get_last_base_model())
 
         lr = self.warmup.get_lr_from_step(round_)
 
         model.cpu().train()
-        optimizer = get_optimizer(self.config.trainer.get_optimizer(), model=model, lr=lr, compress_ratio=self.config.dgc.get_compress_ratio())
+        optimizer = get_optimizer(self.config.trainer.get_optimizer())(
+                                                        params=model.parameters(), 
+                                                        lr=lr)
         # print("base_grad: {}".format(type(object_deserialize(self.dbHandler.cat(base_gradient)))))
         self.cg = optimizer.decompress(object_deserialize(self.dbHandler.cat(base_gradient)))
         # print("cg: {}".format(type(cg)))

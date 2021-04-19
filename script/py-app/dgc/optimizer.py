@@ -275,3 +275,4 @@ class DGCMemory:
         self.compressed_mem = None
         self.decompressed_mem = None
         self.can_add = True
+

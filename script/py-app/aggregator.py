@@ -50,7 +50,8 @@ def aggergate(logger, dbHandler, gradients, _round, sender, config):
     for i in range(len(gradient_list[0])):
         result = torch.stack([j[i] for j in gradient_list]).sum(dim=0)
         agg_gradient.append(result / len(gradient_list))
-        # agg_gradient.append(result)
+
+    # agg_gradient = compressor.memory.avg_mem(mem = gradient_list)
 
     new_gradient = compressor.compress(agg_gradient, compress=False)
 

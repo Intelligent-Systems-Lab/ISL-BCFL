@@ -10,6 +10,9 @@ class config_dgc:
     def get_compress_ratio(self) -> float:
         return float(self.config["compress_ratio"])
 
+    def get_fusing_ratio(self) -> float:
+        return float(self.config["fusing_ratio"])
+
     def get_momentum(self) -> float:
         return float(self.config["momentum"])
 
@@ -18,6 +21,7 @@ class config_dgc:
             return False
         elif self.config["momentum_correction"] == "True":
             return True
+
 
     # def get_sample_ratio(self) -> float:
     #     return float(self.config["sample_ratio"])

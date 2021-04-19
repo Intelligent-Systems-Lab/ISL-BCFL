@@ -1,16 +1,17 @@
 import torch
 import torch.nn as nn
 from torchvision import transforms
-from torch.utils.data import DataLoader, TensorDataset, Dataset
+from torch.utils.data import DataLoader, TensorDataset, Dataset, sampler
 from torch.utils.data.sampler import SubsetRandomSampler
 import torch.nn.functional as F
-from torchvision.models.vgg import vgg16
+import torchvision
 import pandas as pd
 import random
 import numpy as np
-import sys, os
+import sys, os, json
 sys.setrecursionlimit(1000000)
 
+# from models.resnet import resnet18
 from dgc.optimizer import DGCSGD
 from fgc.optimizer import FGCSGD
 
@@ -95,6 +96,27 @@ def getdataloader(dset='./mnist_test.csv', batch=10):
     return trainloader
         
 
+def get_cifar_dataloader(root='./index.json', client=0, batch=10):
+    print("Dataset at : {}".format(root))
+    with open(root, 'rb') as fo:
+        d = json.load(fo)
+    
+    d = d[str(client)]
+    transform = transforms.Compose([transforms.ToTensor(),
+                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+    trainset = torchvision.datasets.CIFAR10(root='/mountdata/cifar10', train=True,
+                                            download=False, transform=transform)
+
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch,
+                                              sampler=SubsetRandomSampler(d),
+                                              num_workers=2)
+                                              
+
+    return trainloader
+
+
+
 class Model_mnist(nn.Module):
     def __init__(self):
         super(Model_mnist, self).__init__()
@@ -167,3 +189,11 @@ class Model_femnist(nn.Module):
         x = x.view(x.size(0), -1) # flatten layer
         x = self.classifier(x)
         return x
+
+# class Model_cifar(torchvision.models.resnet18)):
+#     def __init__(self, ):
+#         super(Model_cifar, self).__init__()
+        
+class ResNet18_cifar(torchvision.models.resnet.ResNet):
+    def __init__(self):
+        super().__init__(block=torchvision.models.resnet.BasicBlock, layers= [2, 2, 2, 2], num_classes=10)

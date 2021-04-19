@@ -38,17 +38,21 @@ def aggergate(logger, dbHandler, gradients, _round, sender, config):
         Model = Model_mnist_fedavg
     elif config.trainer.get_dataset() == "femnist":
         Model = Model_femnist
+        # Model = resnet18
+    elif config.trainer.get_dataset() == "cifar10":
+        Model = ResNet18_cifar
 
     for m in gradients:
         mem = compressor.decompress(object_deserialize(dbHandler.cat(m)))
         gradient_list.append(copy.deepcopy(mem))
 
-    # agg_gradient = []
-    # for i in range(len(gradient_list[0])):
-    #     result = torch.stack([j[i] for j in gradient_list]).sum(dim=0)
-    #     agg_gradient.append(result / len(gradient_list))
+    agg_gradient = []
+    for i in range(len(gradient_list[0])):
+        result = torch.stack([j[i] for j in gradient_list]).sum(dim=0)
+        agg_gradient.append(result / len(gradient_list))
+        # agg_gradient.append(result)
 
-    new_gradient = compressor.compress(gradient_list, compress=False)
+    new_gradient = compressor.compress(agg_gradient, compress=False)
 
 
     # new_model_state = gradient_list[0].state_dict()

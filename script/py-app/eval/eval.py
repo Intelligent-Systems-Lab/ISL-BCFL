@@ -28,9 +28,10 @@ from utils import *
 from options import Configer
 
 
-def acc_plot(models, dataloder, device="CPU"):
+def acc_plot(models, dataloder, config, device="CPU"):
     accd = []
 
+    loss_function = get_criterion(config.trainer.get_lossfun(), device=device)
     
     if not type(dataloder)==list:
         dataloders = []
@@ -46,7 +47,7 @@ def acc_plot(models, dataloder, device="CPU"):
         if device == "GPU":
             model.cuda()
 
-        
+        losses = []
 
         model.eval()
         for data, target in dataloders[i]:
@@ -57,13 +58,17 @@ def acc_plot(models, dataloder, device="CPU"):
 
             output = model(data)
 
+            loss = loss_function(output, target)
+            losses.append(loss.item())
+
             _, preds_tensor = torch.max(output, 1)
             preds = np.squeeze(preds_tensor.cpu().numpy())
             ans = np.append(ans, np.array(target))
             res = np.append(res, np.array(preds))
 
+        losses = sum(losses)/len(losses)
         acc = (ans == res).sum() / len(ans)
-        accd.append(acc)
+        accd.append([acc, losses])
 
     return accd
 
@@ -149,6 +154,9 @@ if __name__ == "__main__":
         Model = Model_mnist_fedavg
     elif con.trainer.get_dataset() == "femnist":
         Model = Model_femnist
+    elif config.trainer.get_dataset() == "cifar10":
+        from torchvision.models import resnet
+        Model = resnet.resnet18
     else:
         print("No model match")
         exit()
@@ -171,8 +179,9 @@ if __name__ == "__main__":
         base_tmp = Model()
         base_tmp.load_state_dict(torch.load("/root/py-app/save_models/{}".format(context["data"][i]["base_result"])))
         # base_tmp = base642fullmodel(client.cat(context["data"][i]["base_result"]).decode())
-        b_acc = acc_plot([base_tmp], test_dataloader)[0]
+        b_acc, loss = acc_plot([base_tmp], test_dataloader, con)[0]
         context["data"][i]["base_acc"] = round(b_acc, 6)
+        context["data"][i]["base_loss"] = round(loss, 6)
         
         # This take to long, enable it if you want to know each incoming_model's acc
         if False:
@@ -198,6 +207,7 @@ if __name__ == "__main__":
 
     # bcfl_result = acc_plot(bcfl_models, test_dataloader, con.trainer.get_device()).
     bcfl_result = [i["base_acc"] for i in context["data"]]
+    bcfl_loss = [i["base_loss"] for i in context["data"]]
 
     # print("Local training...\n")
     # print("Prepare train dataloader...")
@@ -207,14 +217,27 @@ if __name__ == "__main__":
 
     # local_result = acc_plot(local_models, test_dataloader, con.trainer.get_device())
 
+    # plt.title(con.eval.get_title())
+    # plt.grid(True)
+    # plt.ylabel("Accuracy")
+    # plt.xlabel("Round")
+    miter = con.trainer.get_max_iteration()
+    # plt.plot(range(miter), bcfl_result[:miter], color='red', label='BCFL')
+    # # plt.plot(range(miter), local_result[:miter], color='green', label='LOCAL')
+    # plt.legend()
+
+    # # plt.show()
+    # plt.savefig(con.eval.get_output())
+
+    fig, ax1 = plt.subplots()
     plt.title(con.eval.get_title())
     plt.grid(True)
-    plt.ylabel("Accuracy")
-    plt.xlabel("Round")
-    miter = con.trainer.get_max_iteration()
-    plt.plot(range(miter), bcfl_result[:miter], color='red', label='BCFL')
-    # plt.plot(range(miter), local_result[:miter], color='green', label='LOCAL')
-    plt.legend()
+    ax2 = ax1.twinx()
+    ax1.plot(range(miter), bcfl_result[:miter], 'r-')
+    ax2.plot(range(miter), bcfl_loss[:miter], 'g-')
 
-    # plt.show()
+    ax1.set_xlabel('Round')
+    ax1.set_ylabel('Accuracy', color='r')
+    ax2.set_ylabel('loss', color='g')
+
     plt.savefig(con.eval.get_output())

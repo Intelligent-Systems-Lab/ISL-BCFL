@@ -61,6 +61,9 @@ class config_trainer:
         return int(self.config["max_iteration"])
     
     # warmup
+    def get_start_lr(self) -> float:
+        return float(self.config["start_lr"])
+
     def get_max_lr(self) -> float:
         return float(self.config["max_lr"])
     

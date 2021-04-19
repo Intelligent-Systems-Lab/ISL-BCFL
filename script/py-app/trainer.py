@@ -6,7 +6,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from torch import optim
 import argparse
 import base64
-import io, os
+import io, os, json
 import ipfshttpclient
 import time
 import copy
@@ -23,6 +23,9 @@ from dgc.warmup import warmup
 def train(logger, dbHandler, config, bmodel, _round, sender, dataloader, lr, mome=None):
     local_ep = config.trainer.get_local_ep()
     device = config.trainer.get_device()
+    mc = config.dgc.get_momentum_correction()
+    cr = config.dgc.get_compress_ratio()
+    fr = 0.8
     # lr = config.trainer.get_lr()
     # lr = lr
 
@@ -32,6 +35,9 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader, lr, mom
         Model = Model_mnist_fedavg
     elif config.trainer.get_dataset() == "femnist":
         Model = Model_femnist
+        # Model = resnet18
+    elif config.trainer.get_dataset() == "cifar10":
+        Model = ResNet18_cifar
     # model_ = Model()
 
     model = Model()
@@ -47,7 +53,7 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader, lr, mom
     if device == "GPU":
         model.cuda()
 
-    optimizer = get_optimizer(config.trainer.get_optimizer(), model=model, lr=lr, compress_ratio=config.dgc.get_compress_ratio(),fusing_ratio =0.8)
+    optimizer = get_optimizer(config.trainer.get_optimizer(), model=model, lr=lr, compress_ratio = cr ,fusing_ratio = fr)
     loss_function = get_criterion(config.trainer.get_lossfun(), device=device)
 
     if config.trainer.get_optimizer() == "DGCSGD":
@@ -58,12 +64,15 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader, lr, mom
     model.train()
     # logger.info("Train model dataloader")
     local_g =[]
+
+    eploss = []
     for i in range(local_ep):
         if config.trainer.get_optimizer() == "DGCSGD":
             optimizer.memory.clean()
         elif config.trainer.get_optimizer() == "FGCSGD":
             optimizer.memory.clean()
-            
+        
+        losses = []
         for data, target in dataloader:
             if device == "GPU":
                 data = data.cuda()
@@ -81,8 +90,13 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader, lr, mom
             optimizer.gradient_collect()
             optimizer.step()
 
+            losses.append(loss.item())
+        losses = sum(losses)/len(losses)
+        eploss.append(losses)
         # optimizer.compress(compress=False)
         # local_g.append(optimizer.decompress(optimizer.get_compressed_gradient()))
+    eploss = sum(eploss)/len(eploss)
+    add_value_file(path='/root/py-app/loss_{}.json'.format(os.getenv("ID")), value=eploss)
 
     if device == "GPU":
         model.cpu()
@@ -91,9 +105,9 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader, lr, mom
     # for i in local_g:
     #     optimizer.memory.mem.append(i)
     if config.trainer.get_optimizer() == "FGCSGD" and _round > config.trainer.get_base_step():
-        optimizer.compress(mome=mome ,compress=True, fusing=True)
+        optimizer.compress(global_momentum=mome ,compress=True, momentum_correction=mc)
     else:
-        optimizer.compress(compress=True)
+        optimizer.compress(compress=True, momentum_correction=mc)
     cg = optimizer.get_compressed_gradient()
 
     dbres = dbHandler.add(object_serialize(cg))
@@ -111,6 +125,21 @@ def train(logger, dbHandler, config, bmodel, _round, sender, dataloader, lr, mom
     logger.info("Train done")
     return send_result
 
+def add_value_file(path, value):
+    if not os.path.exists(path):
+        f = open(path, 'w')
+        json.dump({"data":[]}, f)
+        f.close()
+        
+    file_ = open(path, 'r')
+    context = json.load(file_)
+    file_.close()
+
+    context["data"].append(value)
+
+    file_ = open(path, 'w')
+    json.dump(context, file_)
+    file_.close()
 
 class trainer:
     def __init__(self, logger, config, dbHandler, sender):
@@ -123,14 +152,20 @@ class trainer:
         # self.local_ep = self.config.trainer.get_local_ep()
         self.dbHandler = dbHandler
 
-        dset = "/mountdata/{}/{}_train_<ID>.csv".format(self.config.trainer.get_dataset_path(), self.config.trainer.get_dataset()).replace("<ID>", os.getenv("ID"))
-        self.dataloader = getdataloader(dset, batch=self.local_bs)
+        if self.config.trainer.get_dataset() == "cifar10":
+            dset = "/mountdata/{}/index.json".format(self.config.trainer.get_dataset_path())
+            self.dataloader = get_cifar_dataloader(dset, client=os.getenv("ID"), batch=self.local_bs)
+        else:
+            dset = "/mountdata/{}/{}_train_<ID>.csv".format(self.config.trainer.get_dataset_path(), self.config.trainer.get_dataset()).replace("<ID>", os.getenv("ID"))
+            self.dataloader = getdataloader(dset, batch=self.local_bs)
+        
         # self.dataloader = None
         self.sender = sender
         self.last_train_round = -1
-        self.cg = None
-
-        self.warmup = warmup(max_lr=self.config.trainer.get_max_lr(), 
+        self.cg = None # last gradient
+        
+        self.warmup = warmup(start_lr=self.config.trainer.get_start_lr(), 
+                            max_lr=self.config.trainer.get_max_lr(), 
                             min_lr=self.config.trainer.get_min_lr(), 
                             base_step=self.config.trainer.get_base_step(),
                             end_step=self.config.trainer.get_end_step())
@@ -202,6 +237,8 @@ class trainer:
             Model = Model_mnist_fedavg
         elif self.config.trainer.get_dataset() == "femnist":
             Model = Model_femnist
+        elif self.config.trainer.get_dataset() == "cifar10":
+            Model = ResNet18_cifar
         # model_ = Model()
 
         model = Model()

@@ -48,6 +48,9 @@ if __name__ == "__main__":
         Model = Model_mnist_fedavg
     elif con.trainer.get_dataset() == "femnist":
         Model = Model_femnist
+        # Model = resnet18
+    elif con.trainer.get_dataset() == "cifar10":
+        Model = ResNet18_cifar
 
     # with open("/root/FIRSTMOD.txt", "w") as file:
     #     file.write(fullmodel2base64(Model()))

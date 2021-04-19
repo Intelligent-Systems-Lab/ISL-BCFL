@@ -31,8 +31,8 @@ def run_eval_container():
     proc = subprocess.Popen('docker run --gpus all --rm -it -v {}:/root/:z -v {}:/mountdata/ tony92151/py-abci python3 -u /root/py-app/eval/eval.py -config /root/py-app/config/config_run.ini'.format(os.path.abspath("./script"), os.path.abspath("./data")), shell=True, stdout=subprocess.PIPE)
     return proc
 #############################################
-def send_create_task_TX(max_iteration=10):
-    proc = subprocess.Popen('docker run --rm -it -v {}:/root/:z tony92151/py-abci python3 /root/py-app/utils.py -config /root/py-app/config/config.ini > FIRSTMOD.txt'.format(os.path.abspath("./script")), shell=True)
+def send_create_task_TX(max_iteration=10, file="config.ini"):
+    proc = subprocess.Popen('docker run --rm -it -v {}:/root/:z tony92151/py-abci python3 /root/py-app/utils.py -config /root/py-app/config/{} > FIRSTMOD.txt'.format(os.path.abspath("./script"), file), shell=True)
     proc.wait()
 
     time.sleep(1)
@@ -161,7 +161,7 @@ if __name__ == "__main__":
     time.sleep(30)
 
     #send create-task TX to strat trining.
-    send_create_task_TX(con.trainer.get_max_iteration())
+    send_create_task_TX(con.trainer.get_max_iteration(), con_path.split("/")[-1])
 
     # check whether training process is finish
     path = os.path.abspath("./script/py-app/save/")

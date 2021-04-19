@@ -1,5 +1,5 @@
 import torch
-import copy
+import copy, os
 from dgc.dgc import DGCCompressor
 """
 Original usage:
@@ -40,8 +40,8 @@ if <receive aggregated gradient>:
 
 # copy from torch/optim/sgd.py
 class DGCSGD(torch.optim.Optimizer):
-    def __init__(self, params, lr=None, momentum=0, dampening=0,
-                 weight_decay=0, nesterov=False, compress_ratio=0.5):
+    def __init__(self, params, lr=None, dgc_momentum=0.9, momentum=0, dampening=0,
+                 weight_decay=0, nesterov=False, compress_ratio=0.5, checkpoint=False):
         if lr is None and lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if momentum < 0.0:
@@ -49,7 +49,7 @@ class DGCSGD(torch.optim.Optimizer):
         if weight_decay < 0.0:
             raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
 
-        self.memory = DGCMemory()
+        self.memory = DGCMemory(momentum = dgc_momentum)
         self.compressor = DGCCompressor(compress_ratio = compress_ratio)
 
         defaults = dict(lr=lr, momentum=momentum, dampening=dampening,
@@ -58,16 +58,44 @@ class DGCSGD(torch.optim.Optimizer):
             raise ValueError("Nesterov momentum requires a momentum and zero dampening")
         super(DGCSGD, self).__init__(params, defaults)
 
+        self.checkpoint = checkpoint
+        if self.checkpoint:
+            self.memory_checkpoint_restore()
+
     def __setstate__(self, state):
         super(DGCSGD, self).__setstate__(state)
         for group in self.param_groups:
             group.setdefault('nesterov', False)
 
+    def memory_checkpoint_save(self):
+        checkpoint = {  "momentums":self.compressor.compress(mem= self.memory.momentums, compress=False, ), 
+                        "velocities":self.compressor.compress(mem= self.memory.velocities, compress=False)}
+        torch.save(self.memory, "/tmp/memory_checkpoint")
+
+    def memory_checkpoint_restore(self):
+        if not os.path.exists("/tmp/memory_checkpoint"):
+            return
+        try:
+            checkpoint = torch.load("/tmp/memory_checkpoint")
+            self.memory.momentums = self.compressor.decompress(checkpoint['momentums'])
+            self.memory.velocities = self.compressor.decompress(checkpoint['velocities'])
+        except:
+            self.memory.momentums = None
+            self.memory.velocities = None
+
     def gradient_collect(self):
         self.memory.add(self.param_groups)
 
-    def compress(self, compress=True):
-        r = self.compressor.compress(self.memory.get_mem(), compress=compress)
+    def compress(self, compress=True, momentum_correction=False):
+        # r = self.compressor.compress(self.memory.get_mem(), compress=compress)
+        if momentum_correction:
+            self.memory_checkpoint_restore()
+            m = self.memory.compensate(self.memory.add_mem(avg=False))
+            r = self.compressor.compress(m, compress=compress)
+            self.memory.update(r)
+            self.memory_checkpoint_save()
+        else:
+            r = self.compressor.compress(self.memory.add_mem(avg=False), compress=compress)
         self.memory.set_compressed_mem(r)
 
     def decompress(self, d):
@@ -146,11 +174,77 @@ class DGCSGD(torch.optim.Optimizer):
 
 
 class DGCMemory:
-    def __init__(self):
+    def __init__(self, momentum=0.9):
         self.mem = []
         self.compressed_mem = None
         self.decompressed_mem = None
         self.can_add = True
+        self.momentum = momentum
+
+        self.momentums = None
+        self.velocities = None
+
+
+    def add_mem(self, mem = None, avg = False):
+        if mem is None:
+            gradient_list = copy.deepcopy(self.mem)
+        else:
+            gradient_list = copy.deepcopy(mem)
+        avg_gradient = []
+        for i in range(len(gradient_list[0])):
+            result = torch.stack([j[i] for j in gradient_list]).sum(dim=0)
+            if avg:
+                agg_gradient.append(result / len(gradient_list))
+            else:
+                avg_gradient.append(result)
+        return avg_gradient
+
+    def compensate(self, gradient):
+        avg_gradient = [i.cpu() for i in gradient]
+
+        if self.momentums is None and self.velocities is None:
+            self.momentums = avg_gradient
+            self.velocities = self.momentums
+            vec = self.velocities
+        else:
+            mmt = self.momentums
+            vec = self.velocities
+            m_e = []
+            v_e = []
+            for m, v, g in zip(mmt, vec, avg_gradient):
+                m_ = copy.deepcopy(m).cpu()
+                v_ = copy.deepcopy(v).cpu()
+                m_.mul_(self.momentum).add_(g)
+                v_.add_(m_)
+
+                m_e.append(m_)
+                v_e.append(v_)
+            
+            self.momentums = m_e
+            self.velocities = v_e
+        
+        return self.velocities
+
+    def update(self, com_gradient):
+        m_n = copy.deepcopy(self.momentums)
+        m_n = [i.cpu() for i in m_n]
+        v_n = copy.deepcopy(self.velocities)
+        v_n = [i.cpu() for i in v_n]
+
+        m_e = []
+        v_e = []
+        
+        for j,m,v in zip(com_gradient, m_n, v_n):
+            new_mem, ctx = j
+            shape, mask, numel = ctx
+            indices = torch.BoolTensor(mask).nonzero().view(-1)
+            m_ = m.view(-1).index_fill_(0, indices, 0)
+            v_ = v.view(-1).index_fill_(0, indices, 0)
+            m_e.append(copy.deepcopy(m_.view(shape)))
+            v_e.append(copy.deepcopy(v_.view(shape)))
+            
+        self.momentums = m_e
+        self.velocities = v_e
 
     def set_compressed_mem(self, d):
         # self.can_add = False
@@ -166,7 +260,7 @@ class DGCMemory:
             g = []
             for group in d:
                 for p in group['params']:
-                    g.append(copy.deepcopy(p.grad))
+                    g.append(copy.deepcopy(p.grad).cpu())
             self.mem.append(g)
 
     def get_mem(self):
